@@ -35,6 +35,8 @@ class RefineOutcome:
     winning_code: str | None = None
     format_id: str | None = None
     format_description: str = ""
+    # Non-table text the exploration preserved (preambles, footnotes):
+    text_notes: list[str] = field(default_factory=list)
 
 
 def _state_prompt(candidate: TableCandidate, filename: str, attempts: list[dict],
@@ -201,6 +203,78 @@ def parse_unknown_text(llm: LLM, sandbox: Sandbox, file_path: Path,
             outcome.format_description = action.get("reason", "")[:200]
             return outcome
     outcome.log.append("max iterations reached; no usable parse")
+    return outcome
+
+
+MAX_EXPLORE_ITERS = 6
+
+
+def explore_file(llm: LLM, sandbox: Sandbox, file_path: Path,
+                 heuristic_summary: list[dict], doc_stem: str) -> RefineOutcome:
+    """Whole-file exploration: the agent probes the file in the sandbox as many
+    times as it needs (blank-line maps, widths, encodings, sub-table hunting),
+    THEN writes one reusable extraction script under the manifest contract.
+    Every probe is a sandbox run — ledger-recorded automatically."""
+    from ..sandbox import load_manifest
+    from ..scripts_registry import manifest_to_candidates
+
+    outcome = RefineOutcome(tables=[])
+    attempts: list[dict] = []
+    for it in range(1, MAX_EXPLORE_ITERS + 1):
+        outcome.iterations = it
+        state = {
+            "filename": file_path.name,
+            "file_size_bytes": file_path.stat().st_size,
+            "heuristic_draft": heuristic_summary,
+            "exploration_so_far": attempts,
+        }
+        try:
+            action = llm.complete_json(json.dumps(state, default=str, indent=1),
+                                       system=prompts.EXPLORE_SYSTEM,
+                                       max_tokens=8000)
+        except (LLMError, ValueError) as e:
+            outcome.log.append(f"iter{it}: llm error: {e}")
+            outcome.accepted_original = True
+            return outcome
+        kind = (action or {}).get("action")
+        if kind == "accept":
+            outcome.accepted_original = True
+            outcome.log.append(f"iter{it}: heuristic draft accepted "
+                               f"({action.get('reason', '')[:80]})")
+            return outcome
+        if kind == "probe":
+            res = sandbox.run_python(action.get("code", ""),
+                                     {file_path.name: file_path})
+            attempts.append({"probe": action.get("reason", "")[:100],
+                             "ok": res.ok, "stdout": res.stdout[-2500:],
+                             "stderr": res.stderr[-800:]})
+            outcome.log.append(f"iter{it}: probe ({action.get('reason', '')[:60]})")
+            continue
+        if kind == "extract":
+            code = action.get("code", "")
+            res = sandbox.run_python(code, {file_path.name: file_path})
+            manifest = load_manifest(res)
+            attempts.append({"extract_attempt": True, "ok": res.ok,
+                             "stdout": res.stdout[-1500:], "stderr": res.stderr[-1200:],
+                             "manifest_valid": bool(manifest and manifest["tables"]),
+                             "manifest_problems": (manifest or {}).get("_invalid", [])})
+            outcome.log.append(
+                f"iter{it}: extract ok={res.ok} "
+                f"manifest={'ok' if manifest and manifest['tables'] else 'MISSING/EMPTY'}")
+            if res.ok and manifest and manifest["tables"]:
+                outcome.tables = manifest_to_candidates(
+                    manifest, doc_stem, file_path.name, method="agent")
+                outcome.winning_code = code
+                outcome.format_id = manifest.get("format_id") or action.get("format_id") \
+                    or f"{doc_stem}-explored"
+                outcome.format_description = action.get("reason", "")[:200]
+                outcome.text_notes = [str(t) for t in
+                                      (manifest.get("text_notes") or [])][:10]
+                return outcome
+            continue
+        attempts.append({"error": f"unrecognized action {kind!r}"})
+    outcome.accepted_original = True
+    outcome.log.append("exploration budget exhausted; keeping heuristic draft")
     return outcome
 
 

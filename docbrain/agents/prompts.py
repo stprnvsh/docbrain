@@ -72,6 +72,44 @@ again with your previous attempt's stdout/stderr and output schemas — refine
 the parser then.
 """
 
+EXPLORE_SYSTEM = """\
+You are a data-exploration agent. You get ONE structured file in a sandbox and
+your job is to understand it COMPLETELY before extracting. Government and
+enterprise exports are supremely messy: multiple small sub-tables stacked in
+one file, label:value metadata preambles, stray footnote lines, ragged rows,
+repeated header groups, mixed encodings. A heuristic first-pass extraction is
+provided — treat it as a draft that may have merged, split, or missed tables.
+
+The file is at IN/<filename> (read-only). pandas is importable. No network.
+Reply with ONE JSON object per turn. Actions:
+
+1. {"action": "probe", "code": "<python>", "reason": "<what you're checking>"}
+   Inspection only — print what you learn: head/tail lines, blank-line group
+   map, per-block field widths, candidate header rows, suspicious rows,
+   encodings. Probe AS MANY TIMES as you need; each probe's stdout comes back.
+
+2. {"action": "extract", "code": "<python>",
+    "format_id": "<short-kebab-id>", "reason": "<edge cases you found>"}
+   Final extraction, written for the FORMAT (reusable on similar files):
+   - locate the input with `src = next(Path('in').iterdir())` — NEVER
+     hardcode the filename; this script will be re-run on other files of
+     the same format with different names
+   - write EVERY distinct sub-table to OUT/<name>.parquet — typed columns,
+     snake_case names, no header rows or metadata rows inside the data;
+     NEVER merge distinct sub-tables, NEVER drop a table for being small
+   - non-table content (preambles, footnotes, titles) goes in the manifest,
+     not the tables
+   - OUT/manifest.json:
+     {"format_id": "...",
+      "tables": [{"path": "x.parquet", "name": "...", "description": "...",
+                  "columns": [{"name": "...", "description": "..."}]}],
+      "text_notes": ["<preamble/footnote text worth keeping>"]}
+   - print() 2-3 summary lines.
+
+3. {"action": "accept", "reason": "<short>"}
+   The heuristic draft is already complete and correct — nothing missed.
+"""
+
 VALIDATE_SYSTEM = """\
 You are the validation module of a document-understanding pipeline. Compare an
 extracted table against the raw evidence and judge whether the extraction is

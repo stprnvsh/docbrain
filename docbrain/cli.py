@@ -62,7 +62,9 @@ def ingest(project: str, paths: list[Path], force: bool = typer.Option(False, "-
             console.print(f"   {mark} {t['name']}  {t['shape'][0]}×{t['shape'][1]} "
                           f"({t['source']}, {t['method']}, conf {t['confidence']}){reuse}")
         for n in rep.notes:
-            console.print(f"   [dim]· {n}[/dim]")
+            # markup=False: note prefixes like [explore] are literal text, not
+            # Rich style tags (they were being silently swallowed).
+            console.print(f"   · {n}", style="dim", markup=False)
 
     if link:
         links = link_project(store, project, llm)

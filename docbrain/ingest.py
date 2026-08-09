@@ -43,9 +43,58 @@ class IngestReport:
 def _should_refine(candidate: TableCandidate, llm: LLM | None) -> bool:
     if AGENT_MODE == "never" or llm is None or not llm.available:
         return False
+    if candidate.sketch.get("explored_ok"):
+        return False  # whole-file exploration already vouched for this draft
     if AGENT_MODE == "always":
         return True
     return bool(AGENT_TRIGGER_FLAGS & set(candidate.flags))
+
+
+def _curated_or_explore(store: Store, llm: LLM, sandbox: Sandbox, path: Path,
+                        heuristic_candidates: list[TableCandidate]
+                        ) -> tuple[list[TableCandidate] | None, list[dict], list[str]]:
+    """Uncertain structured file: try remembered scripts for this format
+    signature (zero LLM); else run whole-file sandbox exploration and curate
+    the winning script. Returns (replacement candidates | None, chunks, notes)."""
+    from .detectors.csv_dialect import decode_bytes
+    from .scripts_registry import (find_matching_scripts, format_signature,
+                                   register_script, try_script)
+    notes: list[str] = []
+    head, _enc = decode_bytes(path.read_bytes()[:4096])
+    signature = format_signature(head[:2500], path.name)
+
+    for script in find_matching_scripts(store, signature):
+        tables = try_script(sandbox, script, path, path.stem)
+        if tables:
+            store.mark_script(script["script_id"], success=True)
+            notes.append(f"[script-registry] reused '{script['format_id']}' "
+                         f"(match {script['similarity']}, no LLM call)")
+            return tables, [], notes
+        store.mark_script(script["script_id"], success=False)
+
+    from .agents.loop import explore_file
+    summary = [{"name": c.name, "shape": list(c.df.shape),
+                "columns": [str(x) for x in c.df.columns][:12],
+                "flags": c.flags} for c in heuristic_candidates]
+    outcome = explore_file(llm, sandbox, path, summary, path.stem)
+    notes.extend(f"[explore] {line}" for line in outcome.log)
+    if outcome.accepted_original:
+        # Exploration confirmed the draft — don't re-litigate per candidate.
+        for c in heuristic_candidates:
+            c.sketch["explored_ok"] = True
+        return heuristic_candidates, [], notes
+    if not outcome.tables:
+        return None, [], notes
+    if outcome.winning_code:
+        sid = register_script(store, outcome.winning_code, outcome.format_id,
+                              outcome.format_description, signature)
+        for c in outcome.tables:
+            c.sketch["script_id"] = sid
+        notes.append(f"[script-registry] saved explored parser "
+                     f"'{outcome.format_id}' ({sid})")
+    chunks = [{"loc": f"explore note {i + 1}", "text": t[:2000]}
+              for i, t in enumerate(outcome.text_notes)]
+    return outcome.tables, chunks, notes
 
 
 def _ingest_archive(store: Store, project: str, path: Path, doc_id: str,
@@ -143,6 +192,18 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
             candidates, meta = csv_extract.extract(path)
             for i, pre in enumerate(meta.get("preambles") or []):
                 chunks.append({"loc": f"non-table block {i + 1}", "text": pre[:2000]})
+            # Heuristics unsure? Registry script first (free), else full sandbox
+            # EXPLORATION: the agent probes the file repeatedly to find every
+            # sub-table/edge case, then writes one reusable extraction script.
+            uncertain = any(c.flags for c in candidates)
+            if uncertain and not meta.get("unstructured") \
+                    and AGENT_MODE != "never" and llm and llm.available:
+                explored, exp_chunks, exp_notes = _curated_or_explore(
+                    store, llm, sandbox or Sandbox(), path, candidates)
+                report.notes.extend(exp_notes)
+                if explored is not None:
+                    candidates = explored
+                    chunks.extend(exp_chunks)
             if meta.get("unstructured"):
                 # A .csv that isn't actually delimited: same records path as txt.
                 chunks.append({"loc": "file head", "text": meta["head_text"]})
