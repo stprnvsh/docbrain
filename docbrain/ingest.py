@@ -182,16 +182,44 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
         # unknown schema -> propose once (human approves via `docbrain mappings`).
         from .targets import load_targets, map_table_if_remembered, maybe_propose
         canonical = None
-        if load_targets():
-            canonical = map_table_if_remembered(
-                store, project=project, table_id=table_id, table_name=cand.name,
-                df=cand.df, schema_id=mem["schema_id"],
-                parquet_sha=persisted[-1]["parquet_sha"], ledger=ledger)
+        all_targets = load_targets()
+        if all_targets:
+            # Drift policy (dlt contract modes): a drifting source under an
+            # approved mapping consults the target's on_drift before mapping.
+            policy_blocked = False
+            if mem["drift"]:
+                approved = store.get_mapping_for(mem["schema_id"], status="approved")
+                if approved:
+                    policy = (all_targets.get(approved["target_schema"]) or {}).get(
+                        "on_drift", "evolve")
+                    if ledger is not None:
+                        ledger.append("schema-change", {
+                            "project": project, "doc_id": doc_id,
+                            "ok": policy != "freeze",
+                            "detail": {"table": cand.name, "drift": mem["drift"][:6],
+                                       "policy": policy,
+                                       "target": approved["target_schema"]},
+                        })
+                    if policy == "freeze":
+                        policy_blocked = True
+                        store.conn.execute(
+                            "UPDATE extracted_tables SET needs_review=true WHERE table_id=?",
+                            [table_id])
+                        report.notes.append(
+                            f"{cand.name}: drift under on_drift=freeze — canonical "
+                            f"mapping withheld, table sent to review")
+            if not policy_blocked:
+                canonical = map_table_if_remembered(
+                    store, project=project, table_id=table_id, table_name=cand.name,
+                    df=cand.df, schema_id=mem["schema_id"],
+                    parquet_sha=persisted[-1]["parquet_sha"], ledger=ledger)
             if canonical:
+                q = (f", {canonical['quarantined']} row(s) quarantined"
+                     if canonical.get("quarantined") else "")
                 report.notes.append(
                     f"{cand.name}: mapped to canonical [{canonical['target']}] "
-                    f"({canonical['rows']} rows) via remembered mapping")
-            elif llm and llm.available and not needs_review:
+                    f"({canonical['rows']} rows{q}) via remembered mapping")
+            elif not policy_blocked and llm and llm.available and not needs_review:
                 prop = maybe_propose(store, llm, schema_id=mem["schema_id"],
                                      source_schema=[{"name": str(c),
                                                      "dtype": str(cand.df[c].dtype)}

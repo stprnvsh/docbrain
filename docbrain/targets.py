@@ -54,15 +54,128 @@ def targets_dir() -> Path:
     return d
 
 
+# Both declaration formats are first-class and never break:
+#   native — the minimal YAML this module always accepted;
+#   ODCS   — Open Data Contract Standard v3.x (kind: DataContract).
+# Everything downstream consumes the normalized internal dict.
+
+ODCS_LOGICAL_TO_DTYPE = {"string": "str", "integer": "int", "number": "float",
+                         "date": "date", "boolean": "bool", "object": "str",
+                         "array": "str"}
+DTYPE_TO_ODCS_LOGICAL = {"str": "string", "int": "integer", "float": "number",
+                         "date": "date", "bool": "boolean"}
+
+
+def _custom_prop(props: list | None, key: str, default=None):
+    for p in props or []:
+        if isinstance(p, dict) and p.get("key") == key:
+            return p.get("value")
+    return default
+
+
+def is_odcs(doc: dict) -> bool:
+    return isinstance(doc, dict) and (
+        doc.get("kind") == "DataContract" or str(doc.get("apiVersion", "")).startswith("v3"))
+
+
+def normalize_odcs(doc: dict) -> dict | None:
+    """ODCS v3.x DataContract -> internal target dict."""
+    from .ir import normalize_col
+    schemas = doc.get("schema") or []
+    if not schemas:
+        return None
+    obj = schemas[0]
+    columns = []
+    for p in obj.get("properties", []):
+        quality = p.get("quality") or []
+        allowed = next((q.get("validValues") for q in quality
+                        if isinstance(q, dict) and q.get("rule") == "validValues"), None)
+        columns.append({
+            "name": p["name"],
+            "dtype": ODCS_LOGICAL_TO_DTYPE.get(p.get("logicalType", "string"), "str"),
+            "required": bool(p.get("required") or p.get("primaryKey")),
+            "nullable": not bool(p.get("required")),
+            "description": p.get("description", ""),
+            "unit": _custom_prop(p.get("customProperties"), "unit"),
+            "allowed": allowed,
+            "business_name": p.get("businessName"),
+        })
+    if not columns:
+        return None
+    name = normalize_col(doc.get("id") or doc.get("name") or obj.get("name"))
+    return {
+        "name": name,
+        "version": doc.get("version", "1"),
+        "description": (doc.get("description") or {}).get("purpose", "") if
+                       isinstance(doc.get("description"), dict) else doc.get("description", ""),
+        "columns": columns,
+        "on_drift": _custom_prop(doc.get("customProperties"), "on_drift", "evolve"),
+        "format": "odcs",
+        "status": doc.get("status", "active"),
+    }
+
+
+def normalize_native(doc: dict) -> dict | None:
+    if not (isinstance(doc, dict) and doc.get("name") and doc.get("columns")):
+        return None
+    cols = []
+    for c in doc["columns"]:
+        cols.append({"name": c["name"], "dtype": c.get("dtype", "str"),
+                     "required": bool(c.get("required")),
+                     "nullable": c.get("nullable", not bool(c.get("required"))),
+                     "description": c.get("description", ""),
+                     "unit": c.get("unit"), "allowed": c.get("allowed"),
+                     "business_name": c.get("business_name")})
+    return {"name": doc["name"], "version": str(doc.get("version", 1)),
+            "description": doc.get("description", ""), "columns": cols,
+            "on_drift": doc.get("on_drift", "evolve"), "format": "native",
+            "status": doc.get("status", "active")}
+
+
+def to_odcs(target: dict) -> dict:
+    """Internal target dict -> ODCS v3.1 DataContract document."""
+    props = []
+    for i, c in enumerate(target["columns"]):
+        p: dict = {"name": c["name"],
+                   "logicalType": DTYPE_TO_ODCS_LOGICAL.get(c["dtype"], "string"),
+                   "required": bool(c.get("required")),
+                   "description": c.get("description", "")}
+        if c.get("business_name"):
+            p["businessName"] = c["business_name"]
+        if c.get("unit"):
+            p["customProperties"] = [{"key": "unit", "value": c["unit"]}]
+        if c.get("allowed"):
+            p["quality"] = [{"type": "library", "rule": "validValues",
+                             "validValues": c["allowed"]}]
+        props.append(p)
+    ver = str(target.get("version", "1"))
+    if ver.count(".") == 0:
+        ver = f"{ver}.0.0"
+    return {
+        "apiVersion": "v3.1.0",
+        "kind": "DataContract",
+        "id": target["name"],
+        "name": target["name"],
+        "version": ver,
+        "status": target.get("status", "active"),
+        "description": {"purpose": target.get("description", "")},
+        "customProperties": [{"key": "on_drift", "value": target.get("on_drift", "evolve")}],
+        "schema": [{"name": target["name"], "logicalType": "object",
+                    "physicalType": "table", "properties": props}],
+    }
+
+
 def load_targets() -> dict[str, dict]:
     out = {}
-    for f in sorted(targets_dir().glob("*.yaml")):
+    for f in sorted(targets_dir().glob("*.yaml")) + sorted(targets_dir().glob("*.yml")):
         try:
-            t = yaml.safe_load(f.read_text())
-            if isinstance(t, dict) and t.get("name") and t.get("columns"):
-                out[t["name"]] = t
+            doc = yaml.safe_load(f.read_text())
         except yaml.YAMLError:
             continue
+        t = normalize_odcs(doc) if is_odcs(doc) else normalize_native(doc)
+        if t and t.get("status", "active") == "active":
+            t["path"] = str(f)
+            out[t["name"]] = t
     return out
 
 
@@ -156,28 +269,41 @@ def map_table_if_remembered(store: Store, *, project: str, table_id: str,
     if not target:
         return None
     canonical_df = apply_mapping(df, target, row["mapping"])
+
+    # Declared-contract enforcement with row-level quarantine (Airbyte pattern).
+    from .enforcement import enforce
+    good_df, bad_df, notes = enforce(canonical_df, target)
+
     cdir = PATHS.project_dir(project) / "canonical" / row["target_schema"]
     cdir.mkdir(parents=True, exist_ok=True)
     cid = short_id("canonical", table_id, row["mapping_id"])
     pq = cdir / f"{table_name}__{cid}.parquet"
-    canonical_df.to_parquet(pq)
+    good_df.to_parquet(pq)
     from .ledger import sha256_file
     out_sha = sha256_file(pq)
+    quarantine_path = None
+    if len(bad_df):
+        qdir = cdir / "_quarantine"
+        qdir.mkdir(exist_ok=True)
+        quarantine_path = qdir / f"{table_name}__{cid}.parquet"
+        bad_df.astype({c: str for c in bad_df.columns if c != "_docbrain_meta"},
+                      errors="ignore").to_parquet(quarantine_path)
     store.add_canonical(canonical_id=cid, project=project,
                         target_schema=row["target_schema"],
                         source_table_id=table_id, mapping_id=row["mapping_id"],
-                        parquet_path=pq, n_rows=len(canonical_df))
+                        parquet_path=pq, n_rows=len(good_df))
     run_hash = None
     if ledger is not None:
         entry = ledger.append("map", {
             "project": project,
             "inputs": [{"name": table_name, "sha256": parquet_sha}],
-            "outputs": [{"name": pq.name, "sha256": out_sha,
-                         "rows": len(canonical_df)}],
+            "outputs": [{"name": pq.name, "sha256": out_sha, "rows": len(good_df)}],
             "ok": True,
             "detail": {"target_schema": row["target_schema"],
                        "mapping_id": row["mapping_id"],
-                       "source_schema_id": schema_id},
+                       "source_schema_id": schema_id,
+                       "quarantined_rows": len(bad_df),
+                       "contract_notes": notes[:5]},
         })
         run_hash = entry["entry_hash"]
     store.add_lineage("canonical", cid, "mapped_from", "table", table_id,
@@ -186,7 +312,10 @@ def map_table_if_remembered(store: Store, *, project: str, table_id: str,
     store.add_lineage("canonical", cid, "conforms_to", "target",
                       row["target_schema"], run_hash, {})
     return {"canonical_id": cid, "target": row["target_schema"],
-            "rows": len(canonical_df), "path": str(pq)}
+            "rows": len(good_df), "path": str(pq),
+            "quarantined": len(bad_df),
+            "quarantine_path": str(quarantine_path) if quarantine_path else None,
+            "contract_notes": notes}
 
 
 def maybe_propose(store: Store, llm, *, schema_id: str, source_schema: list[dict],

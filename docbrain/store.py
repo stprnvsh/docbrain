@@ -112,9 +112,12 @@ CREATE TABLE IF NOT EXISTS mappings (
     mapping_json JSON,             -- {target_col: {source, cast?, scale?, const?}}
     confidence DOUBLE,
     rationale TEXT,
-    status TEXT,                   -- proposed | approved | rejected | needs_transform | no_match
+    status TEXT,                   -- proposed | approved | rejected | superseded | needs_transform | no_match
     created_at TIMESTAMP,
-    decided_at TIMESTAMP
+    decided_at TIMESTAMP,
+    version INTEGER DEFAULT 1,     -- dbt model-versions semantics: bump, never delete
+    superseded_by TEXT,
+    deprecation_date TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS canonical_tables (
     canonical_id TEXT PRIMARY KEY,
@@ -164,6 +167,14 @@ class Store:
         for stmt in DDL.strip().split(";"):
             if stmt.strip():
                 self.conn.execute(stmt)
+        # Migrations for catalogs created before these columns existed.
+        for mig in ("ALTER TABLE mappings ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1",
+                    "ALTER TABLE mappings ADD COLUMN IF NOT EXISTS superseded_by TEXT",
+                    "ALTER TABLE mappings ADD COLUMN IF NOT EXISTS deprecation_date TIMESTAMP"):
+            try:
+                self.conn.execute(mig)
+            except duckdb.Error:
+                pass
 
     # -- documents ------------------------------------------------------
     def get_document_by_hash(self, project: str, content_hash: str):
@@ -368,27 +379,53 @@ class Store:
     # -- target-schema mappings (mapping memory) --------------------------
     def save_mapping(self, mapping_id: str, source_schema_id: str, target_schema: str,
                      mapping: dict, confidence: float, rationale: str, status: str):
+        version = self.conn.execute(
+            "SELECT coalesce(max(version), 0) + 1 FROM mappings "
+            "WHERE source_schema_id=? AND target_schema=?",
+            [source_schema_id, target_schema]).fetchone()[0]
+        self.conn.execute("DELETE FROM mappings WHERE mapping_id=?", [mapping_id])
         self.conn.execute(
-            "INSERT OR REPLACE INTO mappings VALUES (?,?,?,?,?,?,?,?,NULL)",
+            "INSERT INTO mappings (mapping_id, source_schema_id, target_schema, "
+            "mapping_json, confidence, rationale, status, created_at, version) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             [mapping_id, source_schema_id, target_schema, json.dumps(mapping),
-             confidence, rationale, status, _now()])
+             confidence, rationale, status, _now(), version])
 
     def get_mapping_for(self, source_schema_id: str, status: str | None = "approved"):
-        q = "SELECT mapping_id, target_schema, mapping_json, confidence, status FROM mappings WHERE source_schema_id=?"
+        q = ("SELECT mapping_id, target_schema, mapping_json, confidence, status, version "
+             "FROM mappings WHERE source_schema_id=?")
         args: list = [source_schema_id]
         if status:
             q += " AND status=?"
             args.append(status)
-        row = self.conn.execute(q, args).fetchone()
+        row = self.conn.execute(q + " ORDER BY version DESC LIMIT 1", args).fetchone()
         if not row:
             return None
         return {"mapping_id": row[0], "target_schema": row[1],
                 "mapping": json.loads(row[2] or "{}"), "confidence": row[3],
-                "status": row[4]}
+                "status": row[4], "version": row[5]}
+
+    def approve_mapping(self, mapping_id: str) -> dict | None:
+        """Approve one mapping version; supersede any previously-approved
+        version for the same (fingerprint, target) — never delete."""
+        row = self.conn.execute(
+            "SELECT source_schema_id, target_schema FROM mappings WHERE mapping_id=?",
+            [mapping_id]).fetchone()
+        if not row:
+            return None
+        self.conn.execute(
+            "UPDATE mappings SET status='superseded', superseded_by=?, decided_at=? "
+            "WHERE source_schema_id=? AND target_schema=? AND status='approved' "
+            "AND mapping_id != ?",
+            [mapping_id, _now(), row[0], row[1], mapping_id])
+        self.conn.execute(
+            "UPDATE mappings SET status='approved', decided_at=? WHERE mapping_id=?",
+            [_now(), mapping_id])
+        return {"source_schema_id": row[0], "target_schema": row[1]}
 
     def mappings(self, status: str | None = None) -> list[dict]:
         cols = ["mapping_id", "source_schema_id", "target_schema", "mapping_json",
-                "confidence", "rationale", "status"]
+                "confidence", "rationale", "status", "version", "superseded_by"]
         q = f"SELECT {', '.join(cols)} FROM mappings"
         args = []
         if status:

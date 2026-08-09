@@ -155,45 +155,139 @@ def review(project: str):
 
 
 @app.command()
-def targets():
-    """List declared target schemas (~/.docbrain/targets/*.yaml)."""
-    from .targets import load_targets, targets_dir
+def targets(export_odcs: str = typer.Option(None, "--export-odcs",
+                                            help="convert a native target to ODCS v3.1 YAML"),
+            lint: bool = typer.Option(False, "--lint",
+                                      help="lint ODCS targets with datacontract-cli if installed")):
+    """List declared target schemas (~/.docbrain/targets/, native or ODCS v3.1)."""
+    import shutil as _shutil
+    import subprocess as _sp
+    import yaml as _yaml
+    from .targets import load_targets, targets_dir, to_odcs
     ts = load_targets()
+    if export_odcs:
+        t = ts.get(export_odcs)
+        if not t:
+            console.print(f"[red]no target named {export_odcs!r}[/red]")
+            raise typer.Exit(1)
+        out = targets_dir() / f"{export_odcs}.odcs.yaml"
+        out.write_text(_yaml.safe_dump(to_odcs(t), sort_keys=False, allow_unicode=True))
+        console.print(f"ODCS contract written to [bold]{out}[/bold]")
+        console.print("[dim]note: remove the native yaml if you switch over — "
+                      "both files would declare the same target name[/dim]")
+        return
     if not ts:
         console.print(f"no target schemas yet — drop YAML files into {targets_dir()}")
         return
     for t in ts.values():
         req = [c["name"] for c in t["columns"] if c.get("required")]
         opt = [c["name"] for c in t["columns"] if not c.get("required")]
-        console.print(f"[bold]{t['name']}[/bold] v{t.get('version', 1)} — {t.get('description', '')}")
+        console.print(f"[bold]{t['name']}[/bold] v{t.get('version', 1)} "
+                      f"[dim]({t['format']}, on_drift={t.get('on_drift')})[/dim] — {t.get('description', '')}")
         console.print(f"  required: {', '.join(req) or '-'}   optional: {', '.join(opt) or '-'}")
+    if lint:
+        dc = _shutil.which("datacontract")
+        if not dc:
+            console.print("[yellow]datacontract-cli not installed[/yellow] — "
+                          "`uv pip install 'docbrain[contracts]'`")
+            raise typer.Exit(1)
+        for t in ts.values():
+            if t["format"] != "odcs":
+                console.print(f"[dim]{t['name']}: native format, skipping lint[/dim]")
+                continue
+            r = _sp.run([dc, "lint", t["path"]], capture_output=True, text=True)
+            tag = "[green]lint ok[/green]" if r.returncode == 0 else "[red]lint FAILED[/red]"
+            console.print(f"{t['name']}: {tag}")
+            if r.returncode != 0:
+                console.print(r.stdout[-800:] + r.stderr[-400:])
 
 
 @app.command()
-def mappings(status: str = typer.Option(None, help="proposed|approved|rejected|needs_transform")):
-    """List target-schema mappings (mapping memory) awaiting approval or applied."""
+def mappings(status: str = typer.Option(None, help="proposed|approved|rejected|superseded|needs_transform"),
+             export: Path = typer.Option(None, "--export", help="write proposals as reviewable YAML files (PR-review flow)"),
+             sync: Path = typer.Option(None, "--sync", help="import reviewer decisions from an export dir")):
+    """List target-schema mappings — or export/sync them for git-PR approval."""
+    import yaml as _yaml
     store = Store()
+    if export:
+        export.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for m in store.mappings("proposed"):
+            f = export / f"{m['mapping_id']}.yaml"
+            f.write_text(_yaml.safe_dump({
+                "mapping_id": m["mapping_id"],
+                "source_schema_id": m["source_schema_id"],
+                "target_schema": m["target_schema"],
+                "version": m["version"],
+                "confidence": m["confidence"],
+                "rationale": m["rationale"],
+                # reviewer edits this to approved / rejected (and may edit mapping)
+                "status": "proposed",
+                "mapping": m["mapping"],
+            }, sort_keys=False, allow_unicode=True))
+            n += 1
+        console.print(f"{n} proposal(s) exported to {export} — review in a PR, "
+                      f"set status: approved|rejected, then `docbrain mappings --sync {export}`")
+        store.close()
+        return
+    if sync:
+        for f in sorted(sync.glob("*.yaml")):
+            doc = _yaml.safe_load(f.read_text())
+            mid, decision = doc.get("mapping_id"), doc.get("status")
+            if not mid or decision not in ("approved", "rejected"):
+                console.print(f"[dim]{f.name}: no decision yet[/dim]")
+                continue
+            if decision == "approved":
+                current = next((m for m in store.mappings() if m["mapping_id"] == mid), None)
+                if current and doc.get("mapping") and doc["mapping"] != current["mapping"]:
+                    # reviewer edited the mapping: new version, then approve it
+                    from .store import short_id
+                    new_id = short_id("map", current["source_schema_id"],
+                                      current["target_schema"], str(current["version"] + 1))
+                    store.save_mapping(new_id, current["source_schema_id"],
+                                       current["target_schema"], doc["mapping"],
+                                       current["confidence"], "reviewer-edited", "proposed")
+                    store.approve_mapping(new_id)
+                    store.set_mapping_status(mid, "superseded")
+                    console.print(f"[green]✓[/green] {f.name}: reviewer edit → new version approved ({new_id})")
+                else:
+                    store.approve_mapping(mid)
+                    console.print(f"[green]✓[/green] {f.name}: approved")
+            else:
+                store.set_mapping_status(mid, "rejected")
+                console.print(f"[red]✗[/red] {f.name}: rejected")
+        store.close()
+        return
     rows = store.mappings(status)
     rt = RichTable(show_header=True, header_style="dim")
-    for col in ("mapping_id", "source schema", "→ target", "conf", "status", "mapping"):
+    for col in ("mapping_id", "source schema", "→ target", "v", "conf", "status", "mapping"):
         rt.add_column(col)
     for m in rows:
         spec = ", ".join(f"{k}←{v.get('source', v.get('const'))}"
                          for k, v in list(m["mapping"].items())[:5])
+        status_disp = m["status"] + (f" → {m['superseded_by']}" if m.get("superseded_by") else "")
         rt.add_row(m["mapping_id"], m["source_schema_id"], m["target_schema"],
-                   f"{m['confidence']:.2f}", m["status"], spec[:60])
+                   str(m.get("version", 1)), f"{m['confidence']:.2f}", status_disp, spec[:50])
     console.print(rt)
     store.close()
 
 
 @app.command()
 def approve(mapping_id: str, reject: bool = typer.Option(False, "--reject")):
-    """Approve (or --reject) a proposed mapping. Approved mappings apply
-    automatically to every future file with the same schema fingerprint."""
+    """Approve (or --reject) a proposed mapping. Approving supersedes any prior
+    approved version for the same fingerprint+target (never deletes)."""
     store = Store()
-    status = "rejected" if reject else "approved"
-    store.set_mapping_status(mapping_id, status)
-    console.print(f"mapping {mapping_id} → [bold]{status}[/bold]")
+    if reject:
+        store.set_mapping_status(mapping_id, "rejected")
+        console.print(f"mapping {mapping_id} → [bold]rejected[/bold]")
+    else:
+        res = store.approve_mapping(mapping_id)
+        if res is None:
+            console.print(f"[red]no mapping {mapping_id}[/red]")
+        else:
+            console.print(f"mapping {mapping_id} → [bold]approved[/bold] "
+                          f"(fingerprint {res['source_schema_id']} → {res['target_schema']}; "
+                          f"prior approved versions superseded)")
     store.close()
 
 

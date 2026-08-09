@@ -18,7 +18,15 @@ dependencies = [
     "anthropic>=0.40",
     "matplotlib>=3.9",
     "pyyaml>=6.0",
+    "pandera>=0.24",
 ]
+
+[project.optional-dependencies]
+attest = ["cryptography>=42"]
+contracts = ["datacontract-cli>=0.10"]
+lineage = ["openlineage-python>=1.20"]
+matching = ["bdi-kit>=0.6"]
+docling = ["docling>=2.0"]
 
 [project.scripts]
 docbrain = "docbrain.cli:app"
