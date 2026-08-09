@@ -39,6 +39,9 @@ class CsvSniff:
     quotechar: str
     blocks: list[CsvBlock] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # Non-table content (label:value preambles, stray fragments) — preserved
+    # as text for the context layer, never silently discarded.
+    preambles: list[str] = field(default_factory=list)
 
 
 def decode_bytes(raw: bytes) -> tuple[str, str]:
@@ -86,9 +89,34 @@ def sniff_dialect(text: str) -> tuple[str, str, str]:
         return ",", '"', "default"
 
 
-def split_blocks(text: str) -> list[CsvBlock]:
-    """Split on runs of >=1 fully blank line, keeping only blocks that look tabular
-    (>=2 lines). Single-block files come back as one block."""
+def _looks_like_label_preamble(block_text: str, delimiter: str,
+                               max_lines: int = 8, min_ratio: float = 0.6) -> bool:
+    """True for a `Label:;value;` metadata block (e.g. "Zählbeginn:;...;"),
+    the specific shape that precedes many exported count files. Targets the
+    exact pattern (colon-terminated first field, small line count) rather
+    than a general "not tabular" judgment — a real second table, however
+    small or text-heavy (a vehicle-class legend, a code lookup), does NOT
+    have this shape and is never affected. See split_blocks."""
+    lines = [l for l in block_text.splitlines() if l.strip()]
+    if not lines or len(lines) > max_lines:
+        return False
+    colon_labels = sum(1 for line in lines
+                       if (line.split(delimiter, 1)[0]).strip().endswith(":"))
+    return colon_labels / len(lines) >= min_ratio
+
+
+def split_blocks(text: str, delimiter: str | None = None
+                 ) -> tuple[list[CsvBlock], list[str]]:
+    """Split on runs of >=1 fully blank line. Returns (table_blocks, preambles).
+
+    Design rule for randomly-structured (government) data: PRESERVE STRUCTURE,
+    never collapse it. However many sub-tables the file has, that many blocks
+    come back — 7 blocks means 7 candidates. The only demotion is the specific
+    label:value preamble shape (see _looks_like_label_preamble) and stray
+    single-line fragments, and those are returned as text — kept for the
+    context layer, not discarded. Whole-file re-gluing happens ONLY when the
+    file never had blank-line structure to begin with; once real structure is
+    found, surviving blocks are returned as-is even if only one survives."""
     lines = text.splitlines()
     blocks: list[CsvBlock] = []
     cur: list[str] = []
@@ -104,19 +132,32 @@ def split_blocks(text: str) -> list[CsvBlock]:
             cur.append(line)
     if cur:
         blocks.append(CsvBlock(len(blocks), "\n".join(cur), start, len(cur)))
-    tabular = [b for b in blocks if b.n_lines >= 2]
-    if len(tabular) >= 2:
-        return tabular
-    # Single logical table: return everything as one block (blank lines inside are noise).
-    return [CsvBlock(0, text, 0, len(lines))]
+
+    if len(blocks) <= 1:
+        return [CsvBlock(0, text, 0, len(lines))], []
+
+    preambles: list[str] = []
+    tabular: list[CsvBlock] = []
+    for b in blocks:
+        if b.n_lines < 2:
+            preambles.append(b.text)  # stray fragment (title, footnote)
+        elif delimiter and _looks_like_label_preamble(b.text, delimiter):
+            preambles.append(b.text)
+        else:
+            tabular.append(b)
+    if tabular:
+        return tabular, preambles
+    # Everything demoted (pure metadata file): keep it whole as one candidate.
+    return [CsvBlock(0, text, 0, len(lines))], []
 
 
 def sniff_file(path: Path) -> CsvSniff:
     raw = path.read_bytes()
     text, encoding = decode_bytes(raw)
     delim, quote, method = sniff_dialect(text)
+    table_blocks, preambles = split_blocks(text, delimiter=delim)
     sniff = CsvSniff(encoding=encoding, delimiter=delim, quotechar=quote,
-                     blocks=split_blocks(text))
+                     blocks=table_blocks, preambles=preambles)
     sniff.notes.append(f"dialect via {method}")
     if encoding not in ("utf-8", "ascii"):
         sniff.notes.append(f"non-utf8 encoding: {encoding}")

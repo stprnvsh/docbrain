@@ -19,7 +19,11 @@ def detect_type(path: Path) -> str:
     if head.startswith(b"%PDF"):
         return "pdf"
     if head.startswith(b"PK\x03\x04"):
-        # OOXML/ODF container — look inside to distinguish.
+        # A plain zip archive and an OOXML/ODF document share this exact
+        # magic (OOXML *is* a zip). Peek inside: office-shaped paths win;
+        # anything else is a generic archive to explore, not "unknown" —
+        # this is the only reachable path for .zip, since its extension
+        # check further down is otherwise unreachable from here.
         try:
             with zipfile.ZipFile(path) as z:
                 names = set(z.namelist()[:50])
@@ -31,7 +35,7 @@ def detect_type(path: Path) -> str:
                     return "office"
         except zipfile.BadZipFile:
             return "unknown"
-        return "unknown"
+        return "archive"
     if head.startswith(b"\xd0\xcf\x11\xe0"):
         # Legacy CFB container: .doc/.ppt are office; .xls stays unsupported.
         return "office" if ext in OFFICE_EXTS else "xls-legacy"

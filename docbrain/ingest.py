@@ -26,6 +26,8 @@ AGENT_TRIGGER_FLAGS = {
     "no_obvious_header", "weak_header_names",
 }
 
+MAX_ARCHIVE_DEPTH = 3  # zip-of-zips guard
+
 
 @dataclass
 class IngestReport:
@@ -46,9 +48,69 @@ def _should_refine(candidate: TableCandidate, llm: LLM | None) -> bool:
     return bool(AGENT_TRIGGER_FLAGS & set(candidate.flags))
 
 
+def _ingest_archive(store: Store, project: str, path: Path, doc_id: str,
+                    content_hash: str, report: IngestReport, llm: LLM | None,
+                    sandbox: Sandbox | None, force: bool, ledger, scratch: Path,
+                    depth: int) -> IngestReport:
+    """Zip is a container, not a format: extract entries and route each one
+    through ingest_file recursively (nested zips included, depth-guarded).
+    The archive itself gets a document row summarizing its children — no
+    tables of its own."""
+    from .extractors import archive_extract
+    if depth >= MAX_ARCHIVE_DEPTH:
+        store.upsert_document(doc_id, project, path, content_hash, "archive",
+                              "unsupported", 0, {"reason": "max archive nesting depth reached"})
+        report.status = "unsupported"
+        return report
+    try:
+        entry_paths = archive_extract.extract_entries(path, scratch / "entries")
+    except Exception as e:
+        store.upsert_document(doc_id, project, path, content_hash, "archive",
+                              "failed", 0, {"error": str(e)})
+        report.status = "failed"
+        report.notes.append(f"archive extraction failed: {e}")
+        return report
+
+    children: list[tuple[str, IngestReport]] = []
+    for entry_path in entry_paths:
+        entry_type = detect_type(entry_path)
+        if entry_type == "unknown":
+            report.notes.append(f"{entry_path.name}: unrecognized format inside "
+                                f"{path.name}, skipped")
+            continue
+        child = ingest_file(store, project, entry_path, llm=llm, sandbox=sandbox,
+                            force=force, ledger=ledger, _depth=depth + 1)
+        children.append((entry_path.name, child))
+        for t in child.tables:
+            report.tables.append({**t, "source": f"{path.name}::{entry_path.name} :: {t['source']}"})
+        report.notes.extend(f"[{path.name}::{entry_path.name}] {n}" for n in child.notes)
+        if child.doc_id:
+            store.add_lineage("document", child.doc_id, "contained_in",
+                              "document", doc_id, None, {"archive": path.name})
+
+    n_ok = sum(1 for _, c in children if c.status == "ingested")
+    status = "ingested" if n_ok else ("partial" if children else "unsupported")
+    store.upsert_document(doc_id, project, path, content_hash, "archive", status, 0, {
+        "entries": len(entry_paths), "children_ingested": n_ok,
+        "children": [{"name": n, "status": c.status, "doc_id": c.doc_id} for n, c in children],
+    })
+    report.status = status
+    if ledger is not None:
+        ledger.append("ingest", {
+            "project": project, "doc_id": doc_id,
+            "inputs": [{"name": path.name, "sha256": content_hash,
+                        "bytes": path.stat().st_size}],
+            "outputs": [{"name": n, "doc_id": c.doc_id} for n, c in children],
+            "ok": status == "ingested",
+            "detail": {"filetype": "archive", "n_entries": len(entry_paths),
+                       "n_ingested_children": n_ok},
+        })
+    return report
+
+
 def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
                 sandbox: Sandbox | None = None, force: bool = False,
-                ledger=None) -> IngestReport:
+                ledger=None, _depth: int = 0) -> IngestReport:
     path = path.resolve()
     report = IngestReport(path=path)
     content_hash = file_hash(path)
@@ -79,6 +141,8 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
     try:
         if ftype == "csv":
             candidates, meta = csv_extract.extract(path)
+            for i, pre in enumerate(meta.get("preambles") or []):
+                chunks.append({"loc": f"non-table block {i + 1}", "text": pre[:2000]})
             if meta.get("unstructured"):
                 # A .csv that isn't actually delimited: same records path as txt.
                 chunks.append({"loc": "file head", "text": meta["head_text"]})
@@ -159,6 +223,9 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
                     report.notes.append(f"page {sp['page']}: scanned, no vision backend — queued for review")
                     chunks.append({"loc": f"page {sp['page']}",
                                    "text": f"[scanned page, unprocessed: {sp['png']}]"})
+        elif ftype == "archive":
+            return _ingest_archive(store, project, path, doc_id, content_hash,
+                                   report, llm, sandbox, force, ledger, scratch, _depth)
         else:
             store.upsert_document(doc_id, project, path, content_hash, ftype,
                                   "unsupported", 0, {"reason": f"type {ftype} not supported yet"})

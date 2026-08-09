@@ -217,8 +217,12 @@ def propose_mapping(llm: LLM, targets: dict[str, dict], source_schema: list[dict
     for tcol, spec in mapping.items():
         if tcol not in {c["name"] for c in tgt["columns"]}:
             continue
+        if spec is None:
+            continue  # model explicitly declined to map this column
         if isinstance(spec, str):
             spec = {"source": spec}
+        if not isinstance(spec, dict):
+            continue
         if spec.get("source") and spec["source"] not in src_cols and "const" not in spec:
             continue
         clean[tcol] = {k: spec[k] for k in ("source", "cast", "scale", "const")

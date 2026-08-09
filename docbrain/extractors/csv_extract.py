@@ -72,7 +72,8 @@ def extract(path: Path) -> tuple[list[TableCandidate], dict]:
                     "column_origins": col_origins, "origin_trust": "derived"},
         ))
     meta = {"encoding": sniff.encoding, "delimiter": sniff.delimiter,
-            "n_blocks": len(sniff.blocks), "notes": sniff.notes}
+            "n_blocks": len(sniff.blocks), "notes": sniff.notes,
+            "preambles": sniff.preambles}
     return candidates, meta
 
 
