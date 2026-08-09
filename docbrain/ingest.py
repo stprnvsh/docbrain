@@ -95,8 +95,39 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
             report.notes.extend(meta.get("notes", []))
         elif ftype == "xlsx":
             candidates, meta = xlsx_extract.extract(path)
+        elif ftype == "office":
+            from .extractors import office_extract
+            if office_extract.available():
+                candidates, chunks, meta = office_extract.extract(path)
+                report.notes.append(f"anydoc: {meta['n_tables']} table(s), "
+                                    f"{meta['n_chunks']} chunk(s)")
+            else:
+                store.upsert_document(doc_id, project, path, content_hash, ftype,
+                                      "unsupported", 0,
+                                      {"reason": "office track needs firecrawl-anydoc"})
+                report.status = "unsupported"
+                return report
         elif ftype == "pdf":
-            candidates, chunks, meta = pdf_extract.extract(path, scratch)
+            from .config import PDF_ENGINE
+            if PDF_ENGINE == "docling":
+                candidates, chunks, meta = pdf_extract.extract_docling(path)
+                report.notes.append(f"docling engine: {meta['n_tables']} table(s)")
+            else:
+                candidates, chunks, meta = pdf_extract.extract(path, scratch)
+                if PDF_ENGINE == "auto":
+                    reason = pdf_extract.should_escalate_to_docling(candidates, meta)
+                    if reason:
+                        try:
+                            d_cands, d_chunks, d_meta = pdf_extract.extract_docling(path)
+                            if len(d_cands) > len(candidates):
+                                report.notes.append(
+                                    f"escalated to docling ({reason}): "
+                                    f"{len(d_cands)} vs {len(candidates)} native table(s)")
+                                candidates = d_cands
+                                chunks = chunks + d_chunks
+                                meta["scanned_pages"] = []  # docling covered them
+                        except Exception as e:
+                            report.notes.append(f"docling escalation failed: {str(e)[:120]}")
             n_pages = meta.get("n_pages", 0)
             # Vision fallback for scanned pages.
             for sp in meta.get("scanned_pages", []):

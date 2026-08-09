@@ -125,9 +125,26 @@ its own sandboxed code or rendered images; extracted text is never executed.
 See [docs/landscape.md](docs/landscape.md) and
 [docs/adoption-plan.md](docs/adoption-plan.md) for the reasoning.
 
-## Known v0 gaps (deliberate)
+## Wave 3 (implemented, all optional extras)
 
-- docx/pptx, legacy .xls, shapefiles, Visum .mtx, zip archives: routed +
+- **Office track (firecrawl-anydoc)**: doc/docx/odt/rtf/epub/ppt/pptx/ods/odp →
+  typed tables + text chunks, deterministic, no ML, milliseconds.
+- **pdf-inspector classifier**: `DOCBRAIN_PDF_CLASSIFIER=inspector` swaps in
+  Firecrawl's battle-tested page classifier (default stays the built-in
+  heuristic; both agree on the test corpus).
+- **Docling engine** (`[docling]` extra): `DOCBRAIN_PDF_ENGINE=docling|auto` —
+  TableFormer for the hard-layout tail (+46% tables on a dense KPI annex vs
+  native find_tables); `auto` escalates only on scanned/vector pages or
+  zero-native-table docs.
+- **bdi-kit matching** (`[matching]` extra): Valentine/Magneto top-k column
+  candidates computed before the LLM in propose-mappings and passed as
+  evidence.
+- Everything gated by `docbrain eval` — the golden fixture passes with all of
+  the above installed at default settings.
+
+## Known gaps (deliberate)
+
+- legacy .xls, shapefiles, Visum .mtx, zip archives: routed +
   recorded as unsupported, not parsed.
 - Linker is pairwise heuristic + one LLM confirm pass — no entity resolution yet.
 - Chunk search is token overlap, not embeddings.

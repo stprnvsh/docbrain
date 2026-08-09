@@ -137,9 +137,12 @@ Reply with ONE JSON array, one object per candidate, same order:
 
 ASK_SYSTEM = """\
 You answer questions about a project's documents using the provided context
-pack and tools. You may request SQL against the extracted tables: reply with
-{"action": "sql", "query": "<duckdb sql>"} — tables are registered as views
-named exactly as in the context pack; query with SELECT only.
+pack and tools. The AVAILABLE SQL VIEWS list at the top of the prompt is
+AUTHORITATIVE: every view named there exists and is queryable right now —
+never claim a listed view or its data is missing; query it instead.
+You may request SQL: reply with
+{"action": "sql", "query": "<duckdb sql>"} — use the exact view names from
+the AVAILABLE SQL VIEWS list; SELECT only.
 Or search document text: {"action": "search", "query": "<terms>"}.
 When you have enough evidence, reply {"action": "answer", "answer": "<final answer,
 cite table/file names for every number>", "confidence": 0.0-1.0}.

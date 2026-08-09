@@ -181,9 +181,12 @@ def load_targets() -> dict[str, dict]:
 
 # ---------------------------------------------------------------- proposal
 def propose_mapping(llm: LLM, targets: dict[str, dict], source_schema: list[dict],
-                    sample_rows: list[dict], source_name: str) -> dict | None:
+                    sample_rows: list[dict], source_name: str,
+                    matcher_evidence: dict | None = None) -> dict | None:
     """One LLM call: which target (if any) does this source table map to, and
-    how? Returns {"target", "mapping", "confidence", "rationale"} or None."""
+    how? Returns {"target", "mapping", "confidence", "rationale"} or None.
+    matcher_evidence ({target: {target_col: [{source, score}]}}) rides along as
+    top-k candidates from the (non-LLM) schema matcher."""
     if not targets or not (llm and llm.available):
         return None
     payload = {
@@ -193,6 +196,7 @@ def propose_mapping(llm: LLM, targets: dict[str, dict], source_schema: list[dict
         "target_schemas": [
             {"name": t["name"], "description": t.get("description", ""),
              "columns": t["columns"]} for t in targets.values()],
+        "matcher_candidates": matcher_evidence or "unavailable",
     }
     try:
         out = llm.complete_json(json.dumps(payload, default=str, indent=1),
@@ -326,7 +330,16 @@ def maybe_propose(store: Store, llm, *, schema_id: str, source_schema: list[dict
         return None
     targets = load_targets()
     samples = json.loads(df.head(5).to_json(orient="records", date_format="iso"))
-    prop = propose_mapping(llm, targets, source_schema, samples, source_name)
+    # Non-LLM matcher evidence (bdi-kit, optional) — top-k per target column.
+    evidence: dict = {}
+    from .matching import available as matcher_available, rank_matches
+    if matcher_available():
+        for tname, tgt in targets.items():
+            ranked = rank_matches(df, tgt, top_k=3)
+            if ranked:
+                evidence[tname] = ranked
+    prop = propose_mapping(llm, targets, source_schema, samples, source_name,
+                           matcher_evidence=evidence or None)
     if prop is None:
         store.save_mapping(short_id("map", schema_id, "none"), schema_id, "-",
                            {}, 0.0, "no matching target", "no_match")

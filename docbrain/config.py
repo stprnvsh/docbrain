@@ -26,6 +26,15 @@ SANDBOX_TIMEOUT = int(os.environ.get("DOCBRAIN_SANDBOX_TIMEOUT", "120"))
 PDF_TEXT_MIN_CHARS = 80
 PDF_IMAGE_COVERAGE_SCANNED = 0.5
 
+# PDF engine: "pymupdf" (native, default), "docling" (TableFormer/OCR, needs
+# [docling] extra), "auto" (pymupdf first, escalate to docling on triggers).
+PDF_ENGINE = os.environ.get("DOCBRAIN_PDF_ENGINE", "pymupdf")
+DOCLING_MAX_PAGES = int(os.environ.get("DOCBRAIN_DOCLING_MAX_PAGES", "40"))
+
+# PDF page classifier: "heuristic" (built-in, default) or "inspector"
+# (firecrawl pdf-inspector, needs [anydoc]-family wheels installed).
+PDF_CLASSIFIER = os.environ.get("DOCBRAIN_PDF_CLASSIFIER", "heuristic")
+
 
 @dataclass
 class Paths:

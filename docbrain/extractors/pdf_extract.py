@@ -83,6 +83,58 @@ def extract(path: Path, scratch: Path) -> tuple[list[TableCandidate], list[dict]
     return candidates, chunks, meta
 
 
+def extract_docling(path: Path, max_pages: int | None = None) -> tuple[list[TableCandidate], list[dict], dict]:
+    """Docling front-end for the hard-layout tail: TableFormer table structure
+    + OCR. Heavy ([docling] extra); called directly (engine=docling) or via
+    auto-escalation from ingest."""
+    from ..config import DOCLING_MAX_PAGES
+    from docling.document_converter import DocumentConverter
+
+    conv = DocumentConverter()
+    res = conv.convert(str(path), max_num_pages=max_pages or DOCLING_MAX_PAGES)
+    doc = res.document
+    candidates: list[TableCandidate] = []
+    for ti, table in enumerate(doc.tables):
+        try:
+            df = table.export_to_dataframe()
+        except Exception:
+            continue
+        if df.empty or len(df.columns) < 2:
+            continue
+        df.columns = dedupe_columns([normalize_col(c) for c in df.columns])
+        df = infer_types(df)
+        page_no = None
+        try:
+            page_no = table.prov[0].page_no
+        except (AttributeError, IndexError):
+            pass
+        candidates.append(TableCandidate(
+            df=df,
+            name=f"{path.stem}_p{page_no or '?'}_dt{ti + 1}",
+            source_ref=f"page {page_no}" if page_no else "docling",
+            method="pdf-docling",
+            sketch={"page": page_no, "engine": "docling"},
+        ))
+    chunks = [{"loc": f"docling chunk {i + 1}", "text": piece}
+              for i, piece in enumerate(_split_markdown(doc.export_to_markdown()))]
+    meta = {"engine": "docling", "n_tables": len(candidates),
+            "n_pages": getattr(res.document, "num_pages", lambda: 0)()
+                       if callable(getattr(res.document, "num_pages", None))
+                       else len(getattr(doc, "pages", []) or [])}
+    return candidates, chunks, meta
+
+
+def should_escalate_to_docling(candidates: list[TableCandidate], meta: dict) -> str | None:
+    """Auto-engine triggers: scanned/vector pages present, or table-dense pages
+    that produced no native tables."""
+    kinds = {p["kind"] for p in meta.get("pages", [])}
+    if "scanned" in kinds or "vector" in kinds:
+        return "scanned/vector pages present"
+    if not candidates and meta.get("n_pages", 0) > 0:
+        return "no native tables found"
+    return None
+
+
 def _split_markdown(md: str, target: int = 2500) -> list[str]:
     """Split on headings, then greedily pack to ~target chars."""
     import re

@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from .config import LLM_BACKEND, LLM_MODEL
@@ -67,8 +68,17 @@ class LLM:
 
     def complete_json(self, prompt: str, system: str | None = None,
                       images: list[Path] | None = None, max_tokens: int = 4000):
-        raw = self.complete(prompt + "\n\nReturn ONLY valid JSON, no prose.",
-                            system, images, max_tokens)
+        raw = None
+        for attempt, delay in enumerate((0, 3, 10)):
+            if delay:
+                time.sleep(delay)
+            try:
+                raw = self.complete(prompt + "\n\nReturn ONLY valid JSON, no prose.",
+                                    system, images, max_tokens)
+                break
+            except LLMError:
+                if attempt == 2:
+                    raise
         try:
             return extract_json(raw)
         except ValueError:

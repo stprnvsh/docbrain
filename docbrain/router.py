@@ -6,33 +6,37 @@ from __future__ import annotations
 import zipfile
 from pathlib import Path
 
-SUPPORTED = {"xlsx", "pdf", "csv", "txt"}
-PLANNED = {"docx", "pptx"}
+SUPPORTED = {"xlsx", "pdf", "csv", "txt", "office"}
+# Office/e-book formats parse via the anydoc track when installed.
+OFFICE_EXTS = {"doc", "docx", "odt", "rtf", "epub", "ppt", "pptx", "ods", "odp"}
+PLANNED: set[str] = set()
 
 
 def detect_type(path: Path) -> str:
-    """Returns xlsx | pdf | csv | docx | pptx | unknown."""
+    """Returns xlsx | pdf | csv | txt | office | <label> | unknown."""
     head = path.open("rb").read(8)
+    ext = path.suffix.lower().lstrip(".")
     if head.startswith(b"%PDF"):
         return "pdf"
     if head.startswith(b"PK\x03\x04"):
-        # OOXML container — look inside to distinguish xlsx/docx/pptx.
+        # OOXML/ODF container — look inside to distinguish.
         try:
             with zipfile.ZipFile(path) as z:
                 names = set(z.namelist()[:50])
                 joined = " ".join(names)
                 if "xl/workbook.xml" in names or "xl/" in joined:
                     return "xlsx"
-                if "word/" in joined:
-                    return "docx"
-                if "ppt/" in joined:
-                    return "pptx"
+                if "word/" in joined or "ppt/" in joined or "mimetype" in names \
+                        or ext in OFFICE_EXTS:
+                    return "office"
         except zipfile.BadZipFile:
             return "unknown"
         return "unknown"
     if head.startswith(b"\xd0\xcf\x11\xe0"):
-        return "xls-legacy"
-    ext = path.suffix.lower().lstrip(".")
+        # Legacy CFB container: .doc/.ppt are office; .xls stays unsupported.
+        return "office" if ext in OFFICE_EXTS else "xls-legacy"
+    if ext in OFFICE_EXTS:
+        return "office"
     # Known-but-unsupported types get honest labels so the context brain can
     # still tell the user what exists in the project.
     if ext == "mtx":

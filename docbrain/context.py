@@ -9,7 +9,9 @@ chunks, then answers with citations."""
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
 from pathlib import Path
 
 import duckdb
@@ -106,6 +108,21 @@ def build_context(store: Store, project: str, llm: LLM | None = None) -> Path:
             md.append(f"  - columns: {cols}")
         md.append("")
 
+    canonicals = store.canonicals(project)
+    if canonicals:
+        md.append("## Canonical tables (target-schema normalized)")
+        name_of_t = {t["table_id"]: t["name"] for t in tables}
+        by_target: dict[str, list] = {}
+        for c in canonicals:
+            by_target.setdefault(c["target_schema"], []).append(c)
+        for target, rows_ in by_target.items():
+            total = sum(r["n_rows"] for r in rows_)
+            md.append(f"- **{target}** — {total} rows from {len(rows_)} source table(s): "
+                      + ", ".join(name_of_t.get(r["source_table_id"], "?")[:40] for r in rows_))
+            md.append(f"  - queryable in `ask` as view `canonical_{target}` "
+                      f"(a `filename` column identifies the contributing file)")
+        md.append("")
+
     if families:
         md.append("## Schema families (same remembered schema across tables)")
         for f in families:
@@ -164,8 +181,12 @@ def build_context(store: Store, project: str, llm: LLM | None = None) -> Path:
 
 
 # ---------------------------------------------------------------- ask
+def _safe(name: str) -> str:
+    return re.sub(r"[^\w]", "_", str(name))
+
+
 SQL_FORBIDDEN = re.compile(r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|ATTACH|COPY|PRAGMA|INSTALL|LOAD)\b", re.I)
-MAX_EVIDENCE_TURNS = 4
+MAX_EVIDENCE_TURNS = 6
 
 
 def ask(store: Store, project: str, question: str, llm: LLM,
@@ -188,6 +209,22 @@ def ask(store: Store, project: str, question: str, llm: LLM,
                          f"SELECT * FROM read_parquet('{t['parquet_path']}')")
         except Exception:
             continue
+    # Canonical union views: one view per target across all contributing files,
+    # with a filename column so answers can attribute rows to sources.
+    canonical_views: dict[str, list[str]] = {}
+    by_target: dict[str, list] = {}
+    for c in store.canonicals(project):
+        by_target.setdefault(c["target_schema"], []).append(c)
+    for target, rows_ in by_target.items():
+        vname = f"canonical_{_safe(target)}"
+        paths = ", ".join(f"'{r['parquet_path']}'" for r in rows_)
+        try:
+            conn.execute(f"CREATE OR REPLACE VIEW {vname} AS "
+                         f"SELECT * FROM read_parquet([{paths}], filename=true)")
+            canonical_views[vname] = [r["source_table_id"] for r in rows_]
+        except Exception:
+            continue
+    view_to_table.update({v: srcs[0] for v, srcs in canonical_views.items() if srcs})
 
     queries: list[dict] = []      # provenance: every SQL + tables it touched
     touched: set[str] = set()
@@ -199,9 +236,24 @@ def ask(store: Store, project: str, question: str, llm: LLM,
             touched.add(view_to_table[v])
         queries.append({"sql": q, "ok": ok, "tables": hit})
 
+    # Ground-truth view inventory — prepended so it survives any truncation.
+    inv = ["AVAILABLE SQL VIEWS (query these exact names):"]
+    for target, rows_ in by_target.items():
+        vname = f"canonical_{_safe(target)}"
+        if vname in canonical_views:
+            inv.append(f"- {vname}  (canonical '{target}' across {len(rows_)} source files; "
+                       f"has a `filename` column identifying the source)")
+    for t in tables:
+        cols = ", ".join(c["name"] for c in t["schema"][:10])
+        inv.append(f"- {_safe(t['name'])}  ({t['n_rows']}×{t['n_cols']}: {cols})")
+    view_inventory = "\n".join(inv[:120])
+
     transcript: list[dict] = []
     for _turn in range(MAX_EVIDENCE_TURNS + 1):
-        prompt = (f"CONTEXT PACK:\n{context_pack[:14000]}\n\n"
+        # Full pack once; later turns run on inventory + gathered evidence.
+        pack_budget = 60000 if _turn == 0 else 15000
+        prompt = (f"{view_inventory}\n\n"
+                  f"CONTEXT PACK:\n{context_pack[:pack_budget]}\n\n"
                   f"QUESTION: {question}\n\n"
                   f"EVIDENCE SO FAR:\n{json.dumps(transcript, default=str)[:8000]}")
         try:
@@ -209,26 +261,11 @@ def ask(store: Store, project: str, question: str, llm: LLM,
         except (LLMError, ValueError) as e:
             return f"(ask failed: {e})"
         action = (step or {}).get("action")
+        if os.environ.get("DOCBRAIN_ASK_DEBUG"):
+            print(f"[ask turn {_turn}] action={action} :: {str(step)[:180]}", file=sys.stderr)
         if action == "answer":
-            conf = step.get("confidence")
-            suffix = f"\n\n_confidence: {conf}_" if conf is not None else ""
-            answer = step.get("answer", "").strip()
-            if ledger is not None:
-                entry = ledger.append("ask", {
-                    "project": project,
-                    "detail": {"question": question, "queries": queries,
-                               "tables_touched": sorted(touched),
-                               "confidence": conf},
-                    "ok": True,
-                })
-                for tid in touched:
-                    store.bump_usage("table", tid)
-                    store.add_lineage("answer", entry["entry_hash"], "queried",
-                                      "table", tid, entry["entry_hash"], {})
-                name_of = {t["table_id"]: t["name"] for t in tables}
-                evidence = ", ".join(name_of.get(t, t) for t in sorted(touched)) or "text search only"
-                suffix += f"\n_evidence (ledger-verified): {evidence}_"
-            return answer + suffix
+            return _finish(step, ledger, store, project, question, queries,
+                           touched, tables)
         if action == "sql":
             q = step.get("query", "")
             if SQL_FORBIDDEN.search(q):
@@ -251,4 +288,45 @@ def ask(store: Store, project: str, question: str, llm: LLM,
                                          "text": h["text"][:800]} for h in hits]})
             continue
         transcript.append({"error": f"unrecognized action {action!r}"})
+
+    # Evidence turns exhausted: force a final answer from what was gathered.
+    # Deliberately NOT ASK_SYSTEM — no sql/search actions are on offer here.
+    final_prompt = (f"QUESTION: {question}\n\n"
+                    f"EVIDENCE GATHERED (SQL results over the project's tables):\n"
+                    f"{json.dumps(transcript, default=str)[:12000]}\n\n"
+                    'Answer the question from this evidence. Reply with ONE JSON object: '
+                    '{"action": "answer", "answer": "<answer with the numbers, '
+                    'citing table/file names>", "confidence": 0.0-1.0}')
+    try:
+        step = llm.complete_json(final_prompt, max_tokens=3000)
+    except (LLMError, ValueError) as e:
+        return f"(ask failed on final answer: {e})"
+    if os.environ.get("DOCBRAIN_ASK_DEBUG"):
+        print(f"[ask final] {str(step)[:220]}", file=sys.stderr)
+    if isinstance(step, dict) and step.get("answer"):
+        return _finish(step, ledger, store, project, question, queries,
+                       touched, tables)
     return "(no answer after evidence loop — try `docbrain context` output directly)"
+
+
+def _finish(step: dict, ledger, store: Store, project: str, question: str,
+            queries: list[dict], touched: set[str], tables: list[dict]) -> str:
+    conf = step.get("confidence")
+    suffix = f"\n\n_confidence: {conf}_" if conf is not None else ""
+    answer = step.get("answer", "").strip()
+    if ledger is not None:
+        entry = ledger.append("ask", {
+            "project": project,
+            "detail": {"question": question, "queries": queries,
+                       "tables_touched": sorted(touched),
+                       "confidence": conf},
+            "ok": True,
+        })
+        for tid in touched:
+            store.bump_usage("table", tid)
+            store.add_lineage("answer", entry["entry_hash"], "queried",
+                              "table", tid, entry["entry_hash"], {})
+        name_of = {t["table_id"]: t["name"] for t in tables}
+        evidence = ", ".join(name_of.get(t, t) for t in sorted(touched)) or "text search only"
+        suffix += f"\n_evidence (ledger-verified): {evidence}_"
+    return answer + suffix

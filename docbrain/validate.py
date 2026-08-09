@@ -15,7 +15,9 @@ from .ir import TableCandidate
 METHOD_PRIOR = {
     "csv": 0.95,
     "xlsx-island": 0.90,
-    "script": 0.90,     # curated parser that already proved itself on this format
+    "script": 0.90,       # curated parser that already proved itself on this format
+    "office": 0.85,       # anydoc deterministic conversion
+    "pdf-docling": 0.85,  # TableFormer layout recovery
     "pdf-table": 0.80,
     "agent": 0.85,
     "vision": 0.65,

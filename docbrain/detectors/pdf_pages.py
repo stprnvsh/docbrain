@@ -21,7 +21,40 @@ class PageClass:
     image_coverage: float
 
 
+def classify_pages_inspector(path: Path) -> list[PageClass] | None:
+    """Firecrawl pdf-inspector classifier (the battle-tested original of the
+    heuristic below). Returns None when unavailable so callers fall back."""
+    try:
+        import pdf_inspector
+    except ImportError:
+        return None
+    try:
+        r = pdf_inspector.classify_pdf(str(path))
+    except Exception:
+        return None
+    needs_ocr = set(r.pages_needing_ocr or [])  # 0-based page indices
+    out = []
+    for i in range(r.page_count):
+        kind = "scanned" if i in needs_ocr else "text"
+        out.append(PageClass(i, kind, -1, round(float(r.confidence), 3)))
+    return out
+
+
 def classify_pages(path: Path) -> list[PageClass]:
+    from ..config import PDF_CLASSIFIER
+    if PDF_CLASSIFIER == "inspector":
+        res = classify_pages_inspector(path)
+        if res is not None:
+            # keep the heuristic's vector-page detection for drawing-only pages
+            heur = _classify_pages_heuristic(path)
+            for i, p in enumerate(res):
+                if p.kind == "text" and i < len(heur) and heur[i].kind in ("vector", "empty"):
+                    res[i] = heur[i]
+            return res
+    return _classify_pages_heuristic(path)
+
+
+def _classify_pages_heuristic(path: Path) -> list[PageClass]:
     doc = pymupdf.open(path)
     out: list[PageClass] = []
     for i, page in enumerate(doc):
