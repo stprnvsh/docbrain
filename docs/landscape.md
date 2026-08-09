@@ -42,9 +42,22 @@ Also uncontested in OSS core: **schema-fingerprint memory + drift detection**
 (nothing surveyed does it) and a **confidence-gated review queue** (annotation
 tools exist; a review queue integrated into extraction does not).
 
-Positioning: don't compete on parsing quality — consume Docling/MinerU as PDF
-front-ends when native find_tables hits its ceiling; own the typed-tables /
-registry / ledger / canonical-mapping layer.
+**[anydoc + pdf-inspector](https://github.com/firecrawl/anydoc)** (Firecrawl,
+MIT, Rust, ~12–13k★ each, active) deserve their own line: the *no-ML* extreme
+of the parser tier — 14 formats → markdown at <5ms median, page
+classification (text/scanned/mixed) in ~10–50ms without rendering. Zero
+overlap with docbrain's layer (markdown tables, no schemas/provenance/reuse),
+but the best-fitting consume candidate of all: pdf-inspector is the
+battle-tested original of our page classifier; anydoc closes the docx/pptx/
+html gap as fast text coverage without a torch install. Complementary to
+Docling, not competing: anydoc = speed floor for born-digital, Docling =
+accuracy ceiling for layout-hard tables.
+
+Positioning: don't compete on parsing quality — consume anydoc/pdf-inspector
+for the born-digital fast path and Docling/MinerU when native find_tables hits
+its ceiling; own the typed-tables / registry / ledger / canonical-mapping
+layer. Escalation ladder: pdf-inspector classify → anydoc born-digital →
+PyMuPDF geometry → Docling hard-layout → vision/agent.
 
 ## 2. Provenance: claims plane vs facts plane
 
