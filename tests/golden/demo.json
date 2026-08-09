@@ -1,0 +1,222 @@
+{
+ "customers.csv": {
+  "filetype": "csv",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "customers",
+    "rows": 5,
+    "cols": 4,
+    "columns": [
+     "customer_id",
+     "name",
+     "region",
+     "segment"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "csv"
+   }
+  ]
+ },
+ "invoice.pdf": {
+  "filetype": "pdf",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "invoice_p1_t1",
+    "rows": 4,
+    "cols": 4,
+    "columns": [
+     "item",
+     "qty",
+     "unitprice",
+     "total"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "str",
+     "float"
+    ],
+    "method": "pdf-table"
+   }
+  ]
+ },
+ "returns_q2.csv": {
+  "filetype": "csv",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "returns_q2",
+    "rows": 5,
+    "cols": 3,
+    "columns": [
+     "region",
+     "returns",
+     "return_rate"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "float"
+    ],
+    "method": "csv"
+   }
+  ]
+ },
+ "sales_report.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "sales_report_notes_t1",
+    "rows": 3,
+    "cols": 2,
+    "columns": [
+     "field",
+     "description"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "sales_report_overview_t1",
+    "rows": 5,
+    "cols": 3,
+    "columns": [
+     "region",
+     "returns",
+     "return_rate"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "sales_report_overview_t2",
+    "rows": 6,
+    "cols": 3,
+    "columns": [
+     "product",
+     "category",
+     "unit_price"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "sales_report_overview_t3",
+    "rows": 5,
+    "cols": 5,
+    "columns": [
+     "region",
+     "q1_2025_units",
+     "q1_2025_revenue",
+     "q2_2025_units",
+     "q2_2025_revenue"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "sales_report_overview_t4",
+    "rows": 1,
+    "cols": 6,
+    "columns": [
+     "col_0",
+     "col_1",
+     "col_2",
+     "col_3",
+     "col_4",
+     "col_5"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ },
+ "transactions.csv": {
+  "filetype": "csv",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "transactions",
+    "rows": 8,
+    "cols": 6,
+    "columns": [
+     "txnid",
+     "customerid",
+     "datum",
+     "betrag_chf",
+     "region",
+     "beschreibung"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "date",
+     "float",
+     "str",
+     "str"
+    ],
+    "method": "csv"
+   }
+  ]
+ },
+ "transactions_april.csv": {
+  "filetype": "csv",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "transactions_april",
+    "rows": 5,
+    "cols": 6,
+    "columns": [
+     "txnid",
+     "customerid",
+     "datum",
+     "betrag_chf",
+     "region",
+     "beschreibung"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "date",
+     "float",
+     "str",
+     "str"
+    ],
+    "method": "csv"
+   }
+  ]
+ }
+}

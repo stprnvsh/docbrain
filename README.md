@@ -100,6 +100,31 @@ its own sandboxed code or rendered images; extracted text is never executed.
 | CLI `ingest` loop | SQS fan-out + Step Functions/Temporal, same `ingest_file()` |
 | token-overlap chunk search | embeddings/FTS/LightRAG |
 
+## Standards & interop (adoption plan Waves 0–2, implemented)
+
+- **Target schemas, two formats**: native minimal YAML *and* ODCS v3.1
+  DataContracts in `~/.docbrain/targets/` (`docbrain targets`,
+  `--export-odcs`, `--lint` via `[contracts]` extra). Units via
+  `customProperties` UCUM codes.
+- **Declared-contract enforcement**: Pandera schemas generated from targets,
+  enforced at the canonical hop; failing rows quarantined with
+  `_docbrain_meta` (Airbyte raw→typed pattern). Drift policy per target:
+  `on_drift: evolve | freeze`.
+- **Mapping memory with versions** (dbt model-versions semantics): approve
+  supersedes, never deletes; PR-review approval flow via
+  `docbrain mappings --export/--sync`.
+- **Ledger projections** (the JSONL chain stays the system of record):
+  `docbrain emit openlineage` → RunEvents (Marquez/DataHub/OpenMetadata/
+  Purview/Dataplex-ingestible); `docbrain attest` → DSSE-signed in-toto
+  Statements w/ SLSA Provenance v1 predicate (`docbrain keys-init` once,
+  `docbrain attest --verify` re-checks signatures + re-hashes artifacts).
+- **Golden eval gate**: `docbrain eval [--freeze]` — deterministic corpus
+  re-ingest diffed against `tests/golden/`; catalog snapshots via
+  `--snapshot-project`. Gate for Wave 3 (bdi-kit matching, Docling front-end).
+
+See [docs/landscape.md](docs/landscape.md) and
+[docs/adoption-plan.md](docs/adoption-plan.md) for the reasoning.
+
 ## Known v0 gaps (deliberate)
 
 - docx/pptx, legacy .xls, shapefiles, Visum .mtx, zip archives: routed +

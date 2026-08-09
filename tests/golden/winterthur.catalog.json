@@ -1,0 +1,2614 @@
+{
+ "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews.pdf": {
+  "filetype": "pdf",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p100_t1",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p106_t1",
+    "rows": 13,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p10_t1",
+    "rows": 10,
+    "cols": 3,
+    "columns": [
+     "teilnehmende",
+     "baer",
+     "severin_planzer_transport_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p10_t2",
+    "rows": 1,
+    "cols": 2,
+    "columns": [
+     "verteiler",
+     "teilnehmende_und_entschuldigte"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p115_t1",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "teilnehmende_alphabetisch",
+     "bachofner_armin_stadt_winterthur_tiefbauamt_entsorgung_heftiwerner_stadt_winterthur_tiefbauamt_entsorgung"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p18_t1_teilnehmende",
+    "rows": 3,
+    "cols": 3,
+    "columns": [
+     "name",
+     "organisation",
+     "status"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p18_t1_traktanden",
+    "rows": 8,
+    "cols": 2,
+    "columns": [
+     "nr",
+     "thema"
+    ],
+    "dtypes": [
+     "int",
+     "str"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p18_t2",
+    "rows": 1,
+    "cols": 2,
+    "columns": [
+     "verteiler",
+     "teilnehmende_und_entschuldigte"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p27_t1",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p33_t1",
+    "rows": 14,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p39_t1",
+    "rows": 14,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p46_t1",
+    "rows": 13,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p4_t1",
+    "rows": 3,
+    "cols": 3,
+    "columns": [
+     "teilnehmende",
+     "franz_hans",
+     "jucker_transport_gmbh"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p4_t2",
+    "rows": 8,
+    "cols": 2,
+    "columns": [
+     "nr",
+     "traktandum"
+    ],
+    "dtypes": [
+     "int",
+     "str"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p54_t1",
+    "rows": 11,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "eigenmann_christoph_coop_logistikregion_ostschweiz_ticino"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p54_t2",
+    "rows": 1,
+    "cols": 2,
+    "columns": [
+     "verteiler",
+     "teilnehmende"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p63_t1",
+    "rows": 13,
+    "cols": 3,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias",
+     "ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p63_t2",
+    "rows": 2,
+    "cols": 2,
+    "columns": [
+     "verteiler",
+     "teilnehmende"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p69_t1",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p76_t1",
+    "rows": 14,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "forster_hansruedi_toggenburger_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p86_t1",
+    "rows": 10,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hermann_köhle_desirée_zani_strassenbau_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2024-12-20_VERTRAULICH_WV_Grundlagenstudie_Aktennotizen EBP_Interviews_p94_t1",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "teilnehmende",
+     "hofer_matthias_ebp_schweiz_ag"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   }
+  ]
+ },
+ "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang.pdf": {
+  "filetype": "pdf",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p10_t1",
+    "rows": 21,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_franz_burckhardt_strasse_quartiergrüze",
+     "ausverschiedenenfirmenbereichendergebrüder_sulzeragentstanden"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p11_t1",
+    "rows": 18,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_fröschenweidstrasse_quartiergrüze",
+     "hauptsitz_schultheis_möckli_ag_ist_teil_der_burkhalter_gruppe"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p12_t1",
+    "rows": 30,
+    "cols": 3,
+    "columns": [
+     "coop_standort",
+     "hauptsitz_in_basel",
+     "2_429_verkaufsstellen_in_der_schweiz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p13_t1",
+    "rows": 17,
+    "cols": 3,
+    "columns": [
+     "col0",
+     "col1",
+     "es_gibt_verschiedene_restriktionen_bzgl_anliefe_rungen_z_b"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p15_t1",
+    "rows": 14,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "winterthurstadt_strickerstrasse_quartierneuwiesen",
+     "einkaufszentrumneuwiesen"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p16_t1",
+    "rows": 28,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_schlossackerstrasse",
+     "hauptsitz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p19_t1",
+    "rows": 18,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_flugplatzstrasse_quartierhegmatten",
+     "hauptsitzzanistrassenbauag"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p20_t1",
+    "rows": 4,
+    "cols": 2,
+    "columns": [
+     "lieferwagenfahrten",
+     "personentransportmitlieferwagenzurbaustelle"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p21_t1",
+    "rows": 24,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "winterthurstadt_brauerstrasse_quartierlind",
+     "campus_spital_wo_nahezu_alle_tätigkeiten_auf_dem_arealdurchgeführtwerden"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p22_t1",
+    "rows": 20,
+    "cols": 3,
+    "columns": [
+     "vebego_ag_standorte",
+     "winterthur_töss_schlosstalstrasse",
+     "filiale_winterthur"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p23_t1",
+    "rows": 22,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_werkstrasse_quartiergrüze",
+     "hauptsitz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p24_t1",
+    "rows": 19,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_scheideggstrasse_quartiergrüze",
+     "werkhofderabfallsammelfahrzeuge"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p3_t1",
+    "rows": 21,
+    "cols": 4,
+    "columns": [
+     "nr",
+     "kategorie",
+     "name",
+     "seite"
+    ],
+    "dtypes": [
+     "int",
+     "str",
+     "str",
+     "int"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p4_t1",
+    "rows": 11,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "oberwinterthur_rudolf_diesel_strasse_quartiergrüze",
+     "hauptsitz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p5_t1",
+    "rows": 15,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "72standorte_davon65inderschweiz",
+     "hauptsitzindietikon"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p6_t1",
+    "rows": 20,
+    "cols": 3,
+    "columns": [
+     "standort",
+     "effretikon_vogelsangstrasse",
+     "distributionsbasispakete"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p8_t1",
+    "rows": 16,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "winterthurwülflingen_indereuelwies_quartierniederfeld",
+     "hauptsitz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   },
+   {
+    "name": "2025-10-06_VERTRAULICH_WV_Grundlagenstudie_Kennzahlen_Anhang_p9_t1",
+    "rows": 19,
+    "cols": 3,
+    "columns": [
+     "standorte",
+     "winterthurwülflingen_eulachstrasse_quartierlindenplatz",
+     "hauptsitz_verwaltung_engineering_produktion"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "pdf-table"
+   }
+  ]
+ },
+ "61_Arbeit_PW-Fahrten.mtx": {
+  "filetype": "visum-matrix",
+  "status": "unsupported",
+  "tables": []
+ },
+ "62_Ausbildung_PW-Fahrten.mtx": {
+  "filetype": "visum-matrix",
+  "status": "unsupported",
+  "tables": []
+ },
+ "65_Freizeit_PW-Fahrten.mtx": {
+  "filetype": "visum-matrix",
+  "status": "unsupported",
+  "tables": []
+ },
+ "802_PW-Fahrten_201_FH.mtx": {
+  "filetype": "visum-matrix",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.cpg": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.ctf": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.dbf": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.prj": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.shp": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone.shx": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone_centroid.dbf": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone_centroid.shp": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "GVM-ZH23_Zonierung_zone_centroid.shx": {
+  "filetype": "shapefile-part",
+  "status": "unsupported",
+  "tables": []
+ },
+ "K504 Detektorplan_alte Bezeichnungen.pdf": {
+  "filetype": "pdf",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "K504 Detektorplan_alte Bezeichnungen_p1_aenderungen",
+    "rows": 1,
+    "cols": 4,
+    "columns": [
+     "datum",
+     "aenderung",
+     "gez",
+     "ktr"
+    ],
+    "dtypes": [
+     "date",
+     "str",
+     "str",
+     "int"
+    ],
+    "method": "vision"
+   },
+   {
+    "name": "K504 Detektorplan_alte Bezeichnungen_p1_legende",
+    "rows": 15,
+    "cols": 2,
+    "columns": [
+     "symbol_beschreibung",
+     "typ"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "vision"
+   },
+   {
+    "name": "K504 Detektorplan_alte Bezeichnungen_p1_titelfeld",
+    "rows": 7,
+    "cols": 2,
+    "columns": [
+     "feld",
+     "wert"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "vision"
+   }
+  ]
+ },
+ "K602 Detektorplan 20100219 alt.pdf": {
+  "filetype": "pdf",
+  "status": "ingested",
+  "tables": []
+ },
+ "LSA 130.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 131.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 210.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 403.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 410.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 501.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 504.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 602.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA 604.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "LSA202_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA202_Grünzeiten_signal_states",
+    "rows": 57536,
+    "cols": 23,
+    "columns": [
+     "record_nr",
+     "timestamp",
+     "date_raw",
+     "time_raw",
+     "cycle_second",
+     "signal_plan",
+     "phase",
+     "day_type",
+     "red_bitmask",
+     "yellow_bitmask",
+     "green_bitmask",
+     "amber_request_bitmask",
+     "detector_state_low",
+     "detector_state_high",
+     "occupancy_data",
+     "controller_mode",
+     "special_status",
+     "modifier_flags",
+     "extension_x",
+     "variant_v",
+     "cycle_counter_upper",
+     "cycle_counter_lower",
+     "zone_status"
+    ],
+    "dtypes": [
+     "int",
+     "date",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "float",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "float",
+     "int"
+    ],
+    "method": "agent"
+   }
+  ]
+ },
+ "LSA210_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA210_Grünzeiten_signal_states",
+    "rows": 10810,
+    "cols": 21,
+    "columns": [
+     "record_nr",
+     "timestamp",
+     "date_raw",
+     "time_raw",
+     "cycle_second",
+     "signal_plan",
+     "phase",
+     "day_type",
+     "red_bitmask",
+     "yellow_bitmask",
+     "green_bitmask",
+     "amber_request_bitmask",
+     "detector_state_low",
+     "detector_state_high",
+     "occupancy_data",
+     "controller_mode",
+     "special_status",
+     "modifier_flags",
+     "extension_x",
+     "zone_status",
+     "field_p"
+    ],
+    "dtypes": [
+     "int",
+     "date",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "float",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "str"
+    ],
+    "method": "script"
+   }
+  ]
+ },
+ "LSA402_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA402_Grünzeiten_signal_states",
+    "rows": 14537,
+    "cols": 21,
+    "columns": [
+     "record_nr",
+     "timestamp",
+     "date_raw",
+     "time_raw",
+     "cycle_second",
+     "signal_plan",
+     "phase",
+     "red_bitmask",
+     "yellow_bitmask",
+     "green_bitmask",
+     "amber_request_bitmask",
+     "detector_state_low",
+     "detector_state_high",
+     "occupancy_data",
+     "controller_mode",
+     "special_status",
+     "modifier_flags",
+     "extension_x",
+     "cycle_counter_upper",
+     "cycle_counter_lower",
+     "field_f"
+    ],
+    "dtypes": [
+     "int",
+     "date",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "float",
+     "float",
+     "str",
+     "float",
+     "float",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float"
+    ],
+    "method": "script"
+   }
+  ]
+ },
+ "LSA403_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA403_Grünzeiten_signal_states",
+    "rows": 6355,
+    "cols": 14,
+    "columns": [
+     "line_type",
+     "sequence",
+     "time",
+     "signal_groups_hex",
+     "actuators_hex",
+     "b_lower_hex",
+     "b_upper_hex",
+     "w_request",
+     "s_field",
+     "m_field_hex",
+     "x_field",
+     "cycle_second",
+     "program",
+     "timestamp"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "date"
+    ],
+    "method": "agent"
+   }
+  ]
+ },
+ "LSA504_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA504_Grünzeiten_signal_states",
+    "rows": 57553,
+    "cols": 22,
+    "columns": [
+     "record_nr",
+     "timestamp",
+     "date_raw",
+     "time_raw",
+     "cycle_second",
+     "signal_plan",
+     "phase",
+     "day_type",
+     "red_bitmask",
+     "yellow_bitmask",
+     "green_bitmask",
+     "amber_request_bitmask",
+     "detector_state_low",
+     "detector_state_high",
+     "occupancy_data",
+     "controller_mode",
+     "special_status",
+     "modifier_flags",
+     "cycle_counter_upper",
+     "cycle_counter_lower",
+     "zone_status",
+     "field_p"
+    ],
+    "dtypes": [
+     "int",
+     "date",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "float",
+     "float",
+     "str",
+     "int",
+     "int",
+     "str",
+     "float",
+     "int",
+     "int",
+     "float",
+     "float",
+     "int",
+     "str"
+    ],
+    "method": "script"
+   }
+  ]
+ },
+ "LSA604_Grünzeiten.TXT": {
+  "filetype": "txt",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "LSA604_Grünzeiten_signal_states",
+    "rows": 6257,
+    "cols": 14,
+    "columns": [
+     "line_type",
+     "sequence",
+     "time",
+     "signal_groups_hex",
+     "actuators_hex",
+     "b_lower_hex",
+     "b_upper_hex",
+     "w_request",
+     "s_field",
+     "m_field_hex",
+     "x_field",
+     "cycle_second",
+     "program",
+     "timestamp"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "date"
+    ],
+    "method": "script"
+   }
+  ]
+ },
+ "Verkehrsmessdaten Technikumstr_St_Gallerstr.zip": {
+  "filetype": "unknown",
+  "status": "unsupported",
+  "tables": []
+ },
+ "Verkehrszählung 1 Winterthur 20240911.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_admin_t1",
+    "rows": 6,
+    "cols": 3,
+    "columns": [
+     "pcu",
+     "passenger_car_unit_equivalent",
+     "col_2"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_admin_t2",
+    "rows": 7,
+    "cols": 3,
+    "columns": [
+     "service_dienstleistungen",
+     "d",
+     "beispiele"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_admin_t3",
+    "rows": 7,
+    "cols": 2,
+    "columns": [
+     "branchen",
+     "code"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_admin_t4",
+    "rows": 4,
+    "cols": 2,
+    "columns": [
+     "fahrzeugkategorien",
+     "code"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_auswertung_t1",
+    "rows": 8,
+    "cols": 3,
+    "columns": [
+     "richtung",
+     "fahrzeuge",
+     "anteil"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_auswertung_t2",
+    "rows": 5,
+    "cols": 3,
+    "columns": [
+     "gesamt",
+     "10159_100000000037",
+     "0_9999999999999999"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_auswertung_t3",
+    "rows": 4,
+    "cols": 3,
+    "columns": [
+     "col_0",
+     "pcu",
+     "anteil"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_formular_pv_t1",
+    "rows": 1,
+    "cols": 3,
+    "columns": [
+     "west",
+     "west_1",
+     "west_2"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_formular_wv_t3",
+    "rows": 1,
+    "cols": 4,
+    "columns": [
+     "col_0",
+     "col_2",
+     "col_4",
+     "col_6"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_privaterverkehr_t1",
+    "rows": 1,
+    "cols": 8,
+    "columns": [
+     "col_0",
+     "col_1",
+     "col_2",
+     "col_3",
+     "col_4",
+     "col_5",
+     "col_6",
+     "col_7"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_privaterverkehr_t2",
+    "rows": 144,
+    "cols": 7,
+    "columns": [
+     "zeitintervall",
+     "west_pw",
+     "west_linienbus",
+     "west_reisebus",
+     "ost_pw",
+     "ost_linienbus",
+     "ost_reisebus"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "float",
+     "float",
+     "int",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 1 Winterthur 20240911_wirtschaftsverkehr_t1",
+    "rows": 2417,
+    "cols": 8,
+    "columns": [
+     "zeit",
+     "richtung",
+     "fahrzeug",
+     "anhänger",
+     "branche",
+     "kommentar",
+     "ergänzung",
+     "pcu"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "float"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ },
+ "Verkehrszählung 2 Winterthur 20241003.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_admin_t1",
+    "rows": 8,
+    "cols": 3,
+    "columns": [
+     "pcu",
+     "passenger_car_unit_equivalent",
+     "col_2"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_admin_t2",
+    "rows": 7,
+    "cols": 3,
+    "columns": [
+     "service_dienstleistungen",
+     "d",
+     "beispiele"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_admin_t3",
+    "rows": 7,
+    "cols": 2,
+    "columns": [
+     "branchen",
+     "code"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_admin_t4",
+    "rows": 4,
+    "cols": 2,
+    "columns": [
+     "fahrzeugkategorien",
+     "code"
+    ],
+    "dtypes": [
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_auswertung_t1",
+    "rows": 8,
+    "cols": 3,
+    "columns": [
+     "col_0",
+     "col_1",
+     "col_2"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_auswertung_t2",
+    "rows": 7,
+    "cols": 3,
+    "columns": [
+     "col_0",
+     "1_vz",
+     "col_2"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_auswertung_t3",
+    "rows": 7,
+    "cols": 3,
+    "columns": [
+     "fahrzeugart",
+     "anzahl",
+     "anteil"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_auswertung_t4",
+    "rows": 9,
+    "cols": 3,
+    "columns": [
+     "col_0",
+     "1_vz",
+     "2_vz"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_auswertung_t5",
+    "rows": 4,
+    "cols": 3,
+    "columns": [
+     "col_0",
+     "pcu",
+     "anteil"
+    ],
+    "dtypes": [
+     "str",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_privaterverkehr_t1",
+    "rows": 1,
+    "cols": 8,
+    "columns": [
+     "col_0",
+     "col_1",
+     "col_2",
+     "col_3",
+     "col_4",
+     "col_5",
+     "col_6",
+     "col_7"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_privaterverkehr_t2",
+    "rows": 144,
+    "cols": 7,
+    "columns": [
+     "zeitintervall",
+     "west_pw",
+     "west_linienbus",
+     "west_reisebus",
+     "ost_pw",
+     "ost_linienbus",
+     "ost_reisebus"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Verkehrszählung 2 Winterthur 20241003_wirtschaftsverkehr_t1",
+    "rows": 3042,
+    "cols": 8,
+    "columns": [
+     "zeit",
+     "richtung",
+     "fahrzeug",
+     "anhänger",
+     "branche",
+     "kommentar",
+     "ergänzung",
+     "pcu"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "float"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ },
+ "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t1",
+    "rows": 1,
+    "cols": 3,
+    "columns": [
+     "belastung_gvm_zh2_dwv2019",
+     "belastung_gvm_zh2_asp2019",
+     "belastung_gvm_zh2_msp2019"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t2",
+    "rows": 4,
+    "cols": 24,
+    "columns": [
+     "g1_1",
+     "g1_2",
+     "checksumme",
+     "angaben_zur_durchführung_innolutions_intern",
+     "xcoord",
+     "ycoord",
+     "gps_n",
+     "gps_e",
+     "gps_n_1",
+     "gps_e_1",
+     "dtv",
+     "dtv_check",
+     "dtv_check_1",
+     "anz_geräte",
+     "typ",
+     "geräte",
+     "montage",
+     "montiert",
+     "richtung_1_id",
+     "richtung_1_bezeichnung",
+     "richtung_2_id",
+     "richtung_2_bezeichnung",
+     "messbeginn",
+     "bemerkungen"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "str",
+     "str",
+     "int",
+     "int",
+     "float",
+     "float",
+     "float",
+     "float",
+     "int",
+     "str",
+     "int",
+     "int",
+     "str",
+     "str",
+     "date",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "date",
+     "str"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t3",
+    "rows": 4,
+    "cols": 4,
+    "columns": [
+     "xcoord_pflichtenheft",
+     "ycoord_pflichtenheft",
+     "gps_n_pflichtenheft",
+     "gps_e_pflichtenheft"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t4",
+    "rows": 4,
+    "cols": 97,
+    "columns": [
+     "zst_nr_visum",
+     "standort_gemäss_pflichtenheft",
+     "vergleich_pflichtenheft_plan_mit_realisierung",
+     "distanz_zählstelle_pflichtenheft_mit_wie_ausgeführt_zelle_bx_by",
+     "zst_system",
+     "strassenname",
+     "gemeinde",
+     "pflichtenheft_nkoord",
+     "pflichtenheft_ekoord",
+     "nkoord",
+     "ekoord",
+     "hinrichtung",
+     "rückrichtung",
+     "dtv",
+     "dwv",
+     "dtv_h",
+     "dtv_r",
+     "dtv_pw_h",
+     "dtv_li_h",
+     "dtv_lw_h",
+     "dtv_lz_h",
+     "dtv_pw_r",
+     "dtv_li_r",
+     "dtv_lw_r",
+     "dtv_lz_r",
+     "dwv_h",
+     "dwv_r",
+     "dwv_pw_h",
+     "dwv_li_h",
+     "dwv_lw_h",
+     "dwv_lz_h",
+     "dwv_pw_r",
+     "dwv_li_r",
+     "dwv_lw_r",
+     "dwv_lz_r",
+     "asp_h",
+     "asp_r",
+     "asp_pw_h",
+     "asp_li_h",
+     "asp_lw_h",
+     "asp_lz_h",
+     "asp_pw_r",
+     "asp_li_r",
+     "asp_lw_r",
+     "asp_lz_r",
+     "msp_h",
+     "msp_r",
+     "msp_pw_h",
+     "msp_li_h",
+     "msp_lw_h",
+     "msp_lz_h",
+     "msp_pw_r",
+     "msp_li_r",
+     "msp_lw_r",
+     "msp_lz_r",
+     "dnv_h",
+     "dnv_r",
+     "dnv_pw_h",
+     "dnv_li_h",
+     "dnv_lw_h",
+     "dnv_lz_h",
+     "dnv_pw_r",
+     "dnv_li_r",
+     "dnv_lw_r",
+     "dnv_lz_r",
+     "nachtanteil_q",
+     "p_nt2_q",
+     "p_nn2_q",
+     "vt_mittel_q",
+     "vn_mittel_q",
+     "v85",
+     "dtv_velo",
+     "dtv_velo_h",
+     "dtv_velo_r",
+     "dwv_velo",
+     "dwv_velo_h",
+     "dwv_velo_r",
+     "dtv_lv_h",
+     "dtv_lv_r",
+     "dtv_sv_h",
+     "dtv_sv_r",
+     "dwv_lv_h",
+     "dwv_lv_r",
+     "dwv_sv_h",
+     "dwv_sv_r",
+     "asp_lv_h",
+     "asp_lv_r",
+     "asp_sv_h",
+     "asp_sv_r",
+     "msp_lv_h",
+     "msp_lv_r",
+     "msp_sv_h",
+     "msp_sv_r",
+     "dnv_lv_h",
+     "dnv_lv_r",
+     "dnv_sv_h",
+     "dnv_sv_r"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "float",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t5",
+    "rows": 4,
+    "cols": 7,
+    "columns": [
+     "dtv",
+     "dwv",
+     "jahresganglinie_typ",
+     "bezug_zu_messstelle_nr",
+     "faktor_hochr",
+     "dtv_hochrechr",
+     "dwv_hochrechr"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "str",
+     "int",
+     "float",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t6",
+    "rows": 4,
+    "cols": 3,
+    "columns": [
+     "dtv",
+     "dwv",
+     "bemerkung"
+    ],
+    "dtypes": [
+     "float",
+     "float",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t7",
+    "rows": 4,
+    "cols": 13,
+    "columns": [
+     "dtv_2019",
+     "dtv_2023_2024",
+     "differenz",
+     "dwv_2019",
+     "dwv2023_2024",
+     "differenz_1",
+     "asp_2019",
+     "asp_2023_2024",
+     "differenz_2",
+     "msp_2019",
+     "msp2023_2024",
+     "differenz_3",
+     "bemerkungen"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_arbeitsdokument_innolutions_t8",
+    "rows": 4,
+    "cols": 7,
+    "columns": [
+     "zst_nr_visum",
+     "xcoord",
+     "ycoord",
+     "belastung_gvm_zh2_dtv2019",
+     "belastung_gvm_zh2_dwv2019",
+     "belastung_gvm_zh2_asp2019",
+     "belastung_gvm_zh2_msp2019"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Innolutions GVM-ZH_Herbst 2023_gebiet1_liste_t1",
+    "rows": 22,
+    "cols": 3,
+    "columns": [
+     "zhl_stellen_nr",
+     "xcoord",
+     "ycoord"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ },
+ "Zähldaten_Winterthur und Umgebung_ Swisstraffic GVM-ZH_Frühling 2025.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "Zähldaten_Winterthur und Umgebung_ Swisstraffic GVM-ZH_Frühling 2025_muster_tabelle_zählungen_t1",
+    "rows": 24,
+    "cols": 101,
+    "columns": [
+     "zw_zst_id",
+     "hin_rückrichtung",
+     "zst_unique",
+     "xcoord_pflichtenheft",
+     "ycoord_pflichtenheft",
+     "belastung_gvm_zh2_dtv2019_mfz",
+     "belastung_gvm_zh2_dwv2019_mfz",
+     "xcoord_real",
+     "ycoord_real",
+     "standort_gemäss_pflichteheft_ja_nein",
+     "gemeinde",
+     "gemeindetypologie",
+     "strassenmame",
+     "datenlieferant",
+     "anzahl_geräte",
+     "zw_erhebungsart_geräte",
+     "montage_datum",
+     "hin_rückrichtung_gemeinde",
+     "messbeginn",
+     "messende",
+     "zähltage",
+     "bemerkungen",
+     "rohdaten_zw_dtv_miv_hin_rückrichtung",
+     "rohdaten_zw_dtv_pw_hin_rückrichtung",
+     "rohdaten_zw_dtv_li_hinrichtung",
+     "rohdaten_zw_dtv_lw_hin_rückrichtung",
+     "rohdaten_zw_dtv_lz_hin_rückrichtung",
+     "rohdaten_zw_dtv_velo_hin_rückrichtung",
+     "rohdaten_zw_dwv_miv_hin_rückrichtung",
+     "rohdaten_zw_dwv_pw_hin_rückrichtung",
+     "rohdaten_zw_dwv_li_hin_rückrichtung",
+     "rohdaten_zw_dwv_lw_hin_rückrichtung",
+     "rohdaten_zw_dwv_lz_hin_rückrichtung",
+     "rohdaten_zw_dwv_velo_hin_rückrichtung",
+     "rohdaten_zw_asp_miv_hin_rückrichtung",
+     "rohdaten_zw_asp_pw_hin_rückrichtung",
+     "rohdaten_zw_asp_li_hin_rückrichtung",
+     "rohdaten_zw_asp_lw_hin_rückrichtung",
+     "rohdaten_zw_asp_lz_hin_rückrichtung",
+     "rohdaten_zw_msp_miv_hin_rückrichtung",
+     "rohdaten_zw_msp_pw_hin_rückrichtung",
+     "rohdaten_zw_msp_li_hin_rückrichtung",
+     "rohdaten_zw_msp_lw_hin_rückrichtung",
+     "rohdaten_zw_msp_lz_hin_rückrichtung",
+     "rohdaten_zw_dtv_22_06_miv_hin_rückrichtung",
+     "rohdaten_zw_dtv_22_06_pw_hin_rückrichtung",
+     "rohdaten_zw_dtv_22_06_li_hin_rückrichtung",
+     "rohdaten_zw_dtv_22_06_lw_hin_rückrichtung",
+     "rohdaten_zw_dtv_22_06_lz_hin_rückrichtung",
+     "hochrechnung_zw_dtv_miv_hin_rückrichtung",
+     "hochrechnung_zw_dtv_pw_hin_rückrichtung",
+     "hochrechnung_zw_dtv_li_hin_rückrichtung",
+     "hochrechnung_zw_dtv_lw_hin_rückrichtung",
+     "hochrechnung_zw_dtv_lz_hin_rückrichtung",
+     "hochrechnung_zw_dtv_velo_hin_rückrichtung",
+     "hochrechnung_zw_dwv_miv_hin_rückrichtung",
+     "hochrechnung_zw_dwv_pw_hin_rückrichtung",
+     "hochrechnung_zw_dwv_li_hin_rückrichtung",
+     "hochrechnung_zw_dwv_lw_hin_rückrichtung",
+     "hochrechnung_zw_dwv_lz_hin_rückrichtung",
+     "hochrechnung_zw_dwv_velo_hin_rückrichtung",
+     "hochrechnung_zw_msp_miv_hin_rückrichtung",
+     "hochrechnung_zw_msp_pwhin_rückrichtung",
+     "hochrechnung_zw_msp_li_hin_rückrichtung",
+     "hochrechnung_zw_msp_lw_hin_rückrichtung",
+     "hochrechnung_zw_msp_lz_hin_rückrichtung",
+     "hochrechnung_zw_asp_miv_hin_rückrichtung",
+     "hochrechnung_zw_asp_pw_hin_rückrichtung",
+     "hochrechnung_zw_asp_li_hin_rückrichtung",
+     "hochrechnung_zw_asp_lw_hin_rückrichtung",
+     "hochrechnung_zw_asp_lz_hin_rückrichtung",
+     "hochrechnung_zw_dtv_22_06_miv",
+     "hochrechnung_zw_dtv_22_06_pw",
+     "hochrechnung_zw_dtv_22_06_li",
+     "hochrechnung_zw_dtv_22_06_lw",
+     "hochrechnung_zw_dtv_22_06_lz",
+     "korrektur_tool_zw_dtv_miv_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_pw_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_li_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_lw_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_lz_hin_rückrichtung",
+     "korrektur_tool_zw_dwv_miv_hin_rückrichtung",
+     "korrektur_tool_zw_dwv_pw_hin_rückrichtung",
+     "korrektur_tool_zw_dwv_li_hin_rückrichtung",
+     "korrektur_tool_zw_dwv_lw_hin_rückrichtung",
+     "korrektur_tool_zw_dwv_lz_hin_rückrichtung",
+     "korrektur_tool_zw_msp_miv_hin_rückrichtung",
+     "korrektur_tool_zw_msp_pw_hin_rückrichtung",
+     "korrektur_tool_zw_msp_li_hin_rückrichtung",
+     "korrektur_tool_zw_msp_lw_hin_rückrichtung",
+     "korrektur_tool_zw_msp_lz_hin_rückrichtung",
+     "korrektur_tool_zw_asp_miv_hin_rückrichtung",
+     "korrektur_tool_zw_asp_pw_hin_rückrichtung",
+     "korrektur_tool_zw_asp_li_hin_rückrichtung",
+     "korrektur_tool_zw_asp_lw_hin_rückrichtung",
+     "korrektur_tool_zw_asp_lz_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_22_06_miv_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_22_06_pw_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_22_06_li_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_22_06_lw_hin_rückrichtung",
+     "korrektur_tool_zw_dtv_22_06_lz_hin_rückrichtung"
+    ],
+    "dtypes": [
+     "int",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "int",
+     "str",
+     "str",
+     "int",
+     "str",
+     "date",
+     "str",
+     "date",
+     "date",
+     "date",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ },
+ "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022.xlsx": {
+  "filetype": "xlsx",
+  "status": "ingested",
+  "tables": [
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t1",
+    "rows": 1,
+    "cols": 3,
+    "columns": [
+     "belastung_gvm_zh_dwv2018",
+     "belastung_gvm_zh_asp2018",
+     "belastung_gvm_zh_msp2018"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t2",
+    "rows": 7,
+    "cols": 24,
+    "columns": [
+     "g1_1",
+     "g1_2",
+     "checksumme",
+     "angaben_zur_durchführung_innolutions_intern",
+     "xcoord",
+     "ycoord",
+     "gps_n",
+     "gps_e",
+     "gps_n_1",
+     "gps_e_1",
+     "dtv",
+     "dtv_check",
+     "dtv_check_1",
+     "anz_geräte",
+     "typ",
+     "geräte",
+     "montage",
+     "montiert",
+     "richtung_1_id",
+     "richtung_1_bezeichnung",
+     "richtung_2_id",
+     "richtung_2_bezeichnung",
+     "messbeginn",
+     "bemerkungen"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "str",
+     "str",
+     "int",
+     "int",
+     "float",
+     "float",
+     "float",
+     "float",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "date",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "date",
+     "str"
+    ],
+    "method": "agent"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t3",
+    "rows": 7,
+    "cols": 4,
+    "columns": [
+     "xcoord_pflichtenheft",
+     "ycoord_pflichtenheft",
+     "gps_n_pflichtenheft",
+     "gps_e_pflichtenheft"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t4",
+    "rows": 7,
+    "cols": 97,
+    "columns": [
+     "zst_nr_visum",
+     "standort_gemäss_pflichtenheft",
+     "vergleich_pflichtenheft_plan_mit_realisierung",
+     "distanz_zählstelle_pflichtenheft_mit_wie_ausgeführt_zelle_bx_by",
+     "zst_system",
+     "strassenname",
+     "gemeinde",
+     "pflichtenheft_nkoord",
+     "pflichtenheft_ekoord",
+     "nkoord",
+     "ekoord",
+     "hinrichtung",
+     "rückrichtung",
+     "dtv",
+     "dwv",
+     "dtv_h",
+     "dtv_r",
+     "dtv_pw_h",
+     "dtv_li_h",
+     "dtv_lw_h",
+     "dtv_lz_h",
+     "dtv_pw_r",
+     "dtv_li_r",
+     "dtv_lw_r",
+     "dtv_lz_r",
+     "dwv_h",
+     "dwv_r",
+     "dwv_pw_h",
+     "dwv_li_h",
+     "dwv_lw_h",
+     "dwv_lz_h",
+     "dwv_pw_r",
+     "dwv_li_r",
+     "dwv_lw_r",
+     "dwv_lz_r",
+     "asp_h",
+     "asp_r",
+     "asp_pw_h",
+     "asp_li_h",
+     "asp_lw_h",
+     "asp_lz_h",
+     "asp_pw_r",
+     "asp_li_r",
+     "asp_lw_r",
+     "asp_lz_r",
+     "msp_h",
+     "msp_r",
+     "msp_pw_h",
+     "msp_li_h",
+     "msp_lw_h",
+     "msp_lz_h",
+     "msp_pw_r",
+     "msp_li_r",
+     "msp_lw_r",
+     "msp_lz_r",
+     "dnv_h",
+     "dnv_r",
+     "dnv_pw_h",
+     "dnv_li_h",
+     "dnv_lw_h",
+     "dnv_lz_h",
+     "dnv_pw_r",
+     "dnv_li_r",
+     "dnv_lw_r",
+     "dnv_lz_r",
+     "nachtanteil_q",
+     "p_nt2_q",
+     "p_nn2_q",
+     "vt_mittel_q",
+     "vn_mittel_q",
+     "v85",
+     "dtv_velo",
+     "dtv_velo_h",
+     "dtv_velo_r",
+     "dwv_velo",
+     "dwv_velo_h",
+     "dwv_velo_r",
+     "dtv_lv_h",
+     "dtv_lv_r",
+     "dtv_sv_h",
+     "dtv_sv_r",
+     "dwv_lv_h",
+     "dwv_lv_r",
+     "dwv_sv_h",
+     "dwv_sv_r",
+     "asp_lv_h",
+     "asp_lv_r",
+     "asp_sv_h",
+     "asp_sv_r",
+     "msp_lv_h",
+     "msp_lv_r",
+     "msp_sv_h",
+     "msp_sv_r",
+     "dnv_lv_h",
+     "dnv_lv_r",
+     "dnv_sv_h",
+     "dnv_sv_r"
+    ],
+    "dtypes": [
+     "str",
+     "str",
+     "str",
+     "float",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "int",
+     "int",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t5",
+    "rows": 7,
+    "cols": 7,
+    "columns": [
+     "dtv",
+     "dwv",
+     "jahresganglinie_typ",
+     "bezug_zu_messstelle_nr",
+     "faktor_hochr",
+     "dtv_hochrechr",
+     "dwv_hochrechr"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "str",
+     "str",
+     "float",
+     "float",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t6",
+    "rows": 7,
+    "cols": 3,
+    "columns": [
+     "dtv",
+     "dwv",
+     "bemerkung"
+    ],
+    "dtypes": [
+     "float",
+     "float",
+     "str"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t7",
+    "rows": 7,
+    "cols": 12,
+    "columns": [
+     "dtv_2017",
+     "dtv_2022",
+     "differenz",
+     "dwv_2017",
+     "dwv2022",
+     "differenz_1",
+     "asp_2017",
+     "asp_2022",
+     "differenz_2",
+     "msp_2017",
+     "msp202",
+     "differenz_3"
+    ],
+    "dtypes": [
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float",
+     "int",
+     "int",
+     "float"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_arbeitsdokument_innolutions_t8",
+    "rows": 7,
+    "cols": 7,
+    "columns": [
+     "col_0",
+     "col_1",
+     "col_2",
+     "col_3",
+     "col_4",
+     "col_5",
+     "col_6"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   },
+   {
+    "name": "Zähldaten_Winterthur_ Innolutions GVM-ZH_Herbst 2022_gebiet1_liste_t1",
+    "rows": 34,
+    "cols": 3,
+    "columns": [
+     "zhl_stellen_nr",
+     "xcoord",
+     "ycoord"
+    ],
+    "dtypes": [
+     "str",
+     "int",
+     "int"
+    ],
+    "method": "xlsx-island"
+   }
+  ]
+ }
+}

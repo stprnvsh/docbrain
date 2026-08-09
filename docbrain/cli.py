@@ -575,6 +575,44 @@ def scripts():
     store.close()
 
 
+@app.command("eval")
+def eval_cmd(freeze: bool = typer.Option(False, "--freeze", help="write the fixture instead of comparing"),
+             samples: Path = typer.Option(Path("samples"), help="corpus dir for deterministic eval"),
+             fixture: Path = typer.Option(Path("tests/golden/demo.json")),
+             snapshot_project_name: str = typer.Option(None, "--snapshot-project",
+                 help="snapshot/compare an existing project's catalog instead of re-ingesting")):
+    """Golden-corpus regression eval (Wave 0 gate). Exit 1 on regression."""
+    import json as _json
+    from .eval import diff_snapshots, ingest_corpus, snapshot_project
+    store = Store()
+    if snapshot_project_name:
+        snap = snapshot_project(store, snapshot_project_name)
+    else:
+        if not samples.exists():
+            console.print(f"[red]samples dir {samples} not found[/red]")
+            raise typer.Exit(1)
+        snap = ingest_corpus(store, samples)
+    store.close()
+    if freeze:
+        fixture.parent.mkdir(parents=True, exist_ok=True)
+        fixture.write_text(_json.dumps(snap, indent=1, ensure_ascii=False, default=str))
+        console.print(f"fixture frozen: [bold]{fixture}[/bold] "
+                      f"({len(snap)} docs, {sum(len(d['tables']) for d in snap.values())} tables)")
+        return
+    if not fixture.exists():
+        console.print(f"[red]no fixture at {fixture} — run with --freeze first[/red]")
+        raise typer.Exit(1)
+    expected = _json.loads(fixture.read_text())
+    problems = diff_snapshots(expected, snap)
+    if problems:
+        console.print(f"[red]EVAL FAILED — {len(problems)} regression(s):[/red]")
+        for p in problems[:30]:
+            console.print(f"  · {p}")
+        raise typer.Exit(1)
+    console.print(f"[green]EVAL PASSED[/green] — {len(expected)} docs, "
+                  f"{sum(len(d['tables']) for d in expected.values())} tables match the fixture")
+
+
 @app.command()
 def home():
     """Print the data directory."""
