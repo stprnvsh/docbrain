@@ -505,6 +505,59 @@ def verify(project: str = typer.Argument(None)):
 
 
 @app.command()
+def emit(format: str = typer.Argument(..., help="openlineage"),
+         out: Path = typer.Option(None, "--out", help="export dir (default ~/.docbrain/exports)"),
+         since: str = typer.Option(None, help="ISO timestamp lower bound"),
+         url: str = typer.Option(None, help="OpenLineage endpoint to POST to (Marquez/DataHub)")):
+    """Project the ledger into standard interop formats (idempotent replay)."""
+    from .ledger import Ledger
+    ledger = Ledger()
+    out_dir = out or (PATHS.home / "exports")
+    if format == "openlineage":
+        from .emitters.openlineage import emit as _emit
+        res = _emit(ledger.path, out_dir, since=since, url=url)
+        console.print(f"{res['events']} RunEvent(s) → {res['file']}"
+                      + (f", {res['posted']} posted to {url}" if url else "")
+                      + (f" [yellow]{res.get('error', '')}[/yellow]" if res.get("error") else ""))
+    else:
+        console.print(f"[red]unknown format {format!r}[/red] (supported: openlineage)")
+        raise typer.Exit(1)
+
+
+@app.command("keys-init")
+def keys_init(force: bool = typer.Option(False, "--force")):
+    """Generate the local ed25519 signing key for attestations ([attest] extra)."""
+    from .emitters.attestation import init_keys
+    path = init_keys(force=force)
+    console.print(f"signing key: [bold]{path}[/bold] (public key alongside)")
+
+
+@app.command()
+def attest(project: str = typer.Argument(None),
+           table: str = typer.Option(None, help="only subjects whose name contains this"),
+           out: Path = typer.Option(None, "--out"),
+           verify: Path = typer.Option(None, "--verify", help="verify a bundle instead of emitting")):
+    """Export DSSE-signed in-toto/SLSA attestations from the ledger — or verify a bundle."""
+    from .emitters.attestation import attest_ledger, verify_bundle
+    from .ledger import Ledger
+    if verify:
+        res = verify_bundle(verify, [PATHS.home / "projects"])
+        ok = res["signatures_bad"] == 0 and res["artifacts_mismatched"] == 0
+        tag = "[green]VERIFIED[/green]" if ok else "[red]FAILED[/red]"
+        console.print(f"{tag}  signatures {res['signatures_ok']} ok / {res['signatures_bad']} bad; "
+                      f"artifacts {res['artifacts_verified']} verified / "
+                      f"{res['artifacts_mismatched']} mismatched / "
+                      f"{res['artifacts_not_found']} not found on disk")
+        for p in res["problems"]:
+            console.print(f"  [red]· {p}[/red]")
+        raise typer.Exit(0 if ok else 1)
+    ledger = Ledger()
+    res = attest_ledger(ledger.path, out or (PATHS.home / "exports"),
+                        project=project, name_filter=table)
+    console.print(f"{res['attestations']} attestation(s) → {res['bundle']}")
+
+
+@app.command()
 def scripts():
     """List curated agent-authored extraction scripts (global registry)."""
     store = Store()
