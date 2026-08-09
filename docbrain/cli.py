@@ -155,6 +155,137 @@ def review(project: str):
 
 
 @app.command()
+def targets():
+    """List declared target schemas (~/.docbrain/targets/*.yaml)."""
+    from .targets import load_targets, targets_dir
+    ts = load_targets()
+    if not ts:
+        console.print(f"no target schemas yet — drop YAML files into {targets_dir()}")
+        return
+    for t in ts.values():
+        req = [c["name"] for c in t["columns"] if c.get("required")]
+        opt = [c["name"] for c in t["columns"] if not c.get("required")]
+        console.print(f"[bold]{t['name']}[/bold] v{t.get('version', 1)} — {t.get('description', '')}")
+        console.print(f"  required: {', '.join(req) or '-'}   optional: {', '.join(opt) or '-'}")
+
+
+@app.command()
+def mappings(status: str = typer.Option(None, help="proposed|approved|rejected|needs_transform")):
+    """List target-schema mappings (mapping memory) awaiting approval or applied."""
+    store = Store()
+    rows = store.mappings(status)
+    rt = RichTable(show_header=True, header_style="dim")
+    for col in ("mapping_id", "source schema", "→ target", "conf", "status", "mapping"):
+        rt.add_column(col)
+    for m in rows:
+        spec = ", ".join(f"{k}←{v.get('source', v.get('const'))}"
+                         for k, v in list(m["mapping"].items())[:5])
+        rt.add_row(m["mapping_id"], m["source_schema_id"], m["target_schema"],
+                   f"{m['confidence']:.2f}", m["status"], spec[:60])
+    console.print(rt)
+    store.close()
+
+
+@app.command()
+def approve(mapping_id: str, reject: bool = typer.Option(False, "--reject")):
+    """Approve (or --reject) a proposed mapping. Approved mappings apply
+    automatically to every future file with the same schema fingerprint."""
+    store = Store()
+    status = "rejected" if reject else "approved"
+    store.set_mapping_status(mapping_id, status)
+    console.print(f"mapping {mapping_id} → [bold]{status}[/bold]")
+    store.close()
+
+
+@app.command("propose-mappings")
+def propose_mappings(project: str, like: str = typer.Option(None,
+                     help="only tables whose name contains this")):
+    """Ask the LLM to propose target-schema mappings for existing tables whose
+    schema fingerprint has no mapping yet (one proposal per fingerprint)."""
+    from .targets import maybe_propose
+    import pandas as pd
+    store = Store()
+    llm = LLM()
+    seen: set[str] = set()
+    for t in store.tables(project):
+        if like and like.lower() not in t["name"].lower():
+            continue
+        srow = store.conn.execute(
+            "SELECT schema_id FROM table_schema_map WHERE table_id=?",
+            [t["table_id"]]).fetchone()
+        if not srow or srow[0] in seen:
+            continue
+        seen.add(srow[0])
+        try:
+            df = pd.read_parquet(t["parquet_path"])
+        except Exception:
+            continue
+        prop = maybe_propose(store, llm, schema_id=srow[0],
+                             source_schema=[{"name": c["name"], "dtype": c["dtype"]}
+                                            for c in t["schema"]],
+                             df=df, source_name=t["name"])
+        if prop is None:
+            console.print(f"[dim]{t['name'][:60]}: no target match (or already decided)[/dim]")
+        else:
+            console.print(f"[bold]{t['name'][:60]}[/bold] → [{prop['target']}] "
+                          f"conf {prop['confidence']:.2f} status={prop['status']} "
+                          f"id={prop['mapping_id']}")
+            console.print(f"   {prop.get('rationale', '')[:100]}")
+    store.close()
+
+
+@app.command("apply-mappings")
+def apply_mappings(project: str):
+    """Retroactively apply approved mappings to already-ingested tables."""
+    from .ledger import Ledger, sha256_file
+    from .targets import map_table_if_remembered
+    import json as _json
+    store = Store()
+    ledger = Ledger(store=store)
+    import pandas as pd
+    done = 0
+    already = {c["source_table_id"] for c in store.canonicals(project)}
+    for t in store.tables(project):
+        if t["table_id"] in already:
+            continue
+        srow = store.conn.execute(
+            "SELECT schema_id FROM table_schema_map WHERE table_id=?",
+            [t["table_id"]]).fetchone()
+        if not srow:
+            continue
+        try:
+            df = pd.read_parquet(t["parquet_path"])
+        except Exception:
+            continue
+        res = map_table_if_remembered(store, project=project, table_id=t["table_id"],
+                                      table_name=t["name"], df=df, schema_id=srow[0],
+                                      parquet_sha=sha256_file(Path(t["parquet_path"])),
+                                      ledger=ledger)
+        if res:
+            done += 1
+            console.print(f"[green]✓[/green] {t['name']} → [{res['target']}] {res['rows']} rows")
+    console.print(f"{done} canonical table(s) produced")
+    store.close()
+
+
+@app.command()
+def canonical(project: str):
+    """List canonical (target-schema) tables for a project."""
+    store = Store()
+    rows = store.canonicals(project)
+    name_of = {t["table_id"]: t["name"] for t in store.tables(project)}
+    rt = RichTable(show_header=True, header_style="dim")
+    for col in ("target", "rows", "source table", "parquet"):
+        rt.add_column(col)
+    for c in rows:
+        rt.add_row(c["target_schema"], str(c["n_rows"]),
+                   name_of.get(c["source_table_id"], "?")[:45],
+                   c["parquet_path"][-60:])
+    console.print(rt)
+    store.close()
+
+
+@app.command()
 def provenance(project: str, name: str = typer.Argument(None,
                help="table name or filename; omit for project overview")):
     """Where data came from — lineage, runs, and usage from the ledger."""

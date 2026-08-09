@@ -105,6 +105,27 @@ CREATE TABLE IF NOT EXISTS usage (
     last_used TIMESTAMP,
     PRIMARY KEY (entity_kind, entity_id)
 );
+CREATE TABLE IF NOT EXISTS mappings (
+    mapping_id TEXT PRIMARY KEY,
+    source_schema_id TEXT,         -- schema-registry fingerprint id
+    target_schema TEXT,
+    mapping_json JSON,             -- {target_col: {source, cast?, scale?, const?}}
+    confidence DOUBLE,
+    rationale TEXT,
+    status TEXT,                   -- proposed | approved | rejected | needs_transform | no_match
+    created_at TIMESTAMP,
+    decided_at TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS canonical_tables (
+    canonical_id TEXT PRIMARY KEY,
+    project TEXT,
+    target_schema TEXT,
+    source_table_id TEXT,
+    mapping_id TEXT,
+    parquet_path TEXT,
+    n_rows INTEGER,
+    created_at TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS script_registry (
     script_id TEXT PRIMARY KEY,
     format_id TEXT,
@@ -343,6 +364,64 @@ class Store:
                 d[k] = json.loads(d[k] or "null")
             out.append(d)
         return out
+
+    # -- target-schema mappings (mapping memory) --------------------------
+    def save_mapping(self, mapping_id: str, source_schema_id: str, target_schema: str,
+                     mapping: dict, confidence: float, rationale: str, status: str):
+        self.conn.execute(
+            "INSERT OR REPLACE INTO mappings VALUES (?,?,?,?,?,?,?,?,NULL)",
+            [mapping_id, source_schema_id, target_schema, json.dumps(mapping),
+             confidence, rationale, status, _now()])
+
+    def get_mapping_for(self, source_schema_id: str, status: str | None = "approved"):
+        q = "SELECT mapping_id, target_schema, mapping_json, confidence, status FROM mappings WHERE source_schema_id=?"
+        args: list = [source_schema_id]
+        if status:
+            q += " AND status=?"
+            args.append(status)
+        row = self.conn.execute(q, args).fetchone()
+        if not row:
+            return None
+        return {"mapping_id": row[0], "target_schema": row[1],
+                "mapping": json.loads(row[2] or "{}"), "confidence": row[3],
+                "status": row[4]}
+
+    def mappings(self, status: str | None = None) -> list[dict]:
+        cols = ["mapping_id", "source_schema_id", "target_schema", "mapping_json",
+                "confidence", "rationale", "status"]
+        q = f"SELECT {', '.join(cols)} FROM mappings"
+        args = []
+        if status:
+            q += " WHERE status=?"
+            args.append(status)
+        rows = self.conn.execute(q + " ORDER BY created_at DESC", args).fetchall()
+        out = []
+        for r in rows:
+            d = dict(zip(cols, r, strict=True))
+            d["mapping"] = json.loads(d.pop("mapping_json") or "{}")
+            out.append(d)
+        return out
+
+    def set_mapping_status(self, mapping_id: str, status: str) -> bool:
+        cur = self.conn.execute(
+            "UPDATE mappings SET status=?, decided_at=? WHERE mapping_id=?",
+            [status, _now(), mapping_id])
+        return cur.fetchone() is None  # duckdb: no rowcount; treat as ok
+
+    def add_canonical(self, *, canonical_id: str, project: str, target_schema: str,
+                      source_table_id: str, mapping_id: str, parquet_path: Path,
+                      n_rows: int):
+        self.conn.execute("INSERT OR REPLACE INTO canonical_tables VALUES (?,?,?,?,?,?,?,?)",
+                          [canonical_id, project, target_schema, source_table_id,
+                           mapping_id, str(parquet_path), n_rows, _now()])
+
+    def canonicals(self, project: str) -> list[dict]:
+        cols = ["canonical_id", "target_schema", "source_table_id", "mapping_id",
+                "parquet_path", "n_rows"]
+        rows = self.conn.execute(
+            f"SELECT {', '.join(cols)} FROM canonical_tables WHERE project=? "
+            "ORDER BY target_schema", [project]).fetchall()
+        return [dict(zip(cols, r, strict=True)) for r in rows]
 
     # -- curated extraction scripts --------------------------------------
     def scripts(self) -> list[dict]:

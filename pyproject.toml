@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.7",
     "anthropic>=0.40",
     "matplotlib>=3.9",
+    "pyyaml>=6.0",
 ]
 
 [project.scripts]

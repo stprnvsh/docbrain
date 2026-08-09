@@ -177,11 +177,42 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
                           "source_ref": cand.source_ref,
                           "script_id": cand.sketch.get("script_id")})
         mem = register_schema(store, table_id, cand.df)
+
+        # Target schemas: remembered mapping -> canonical table automatically;
+        # unknown schema -> propose once (human approves via `docbrain mappings`).
+        from .targets import load_targets, map_table_if_remembered, maybe_propose
+        canonical = None
+        if load_targets():
+            canonical = map_table_if_remembered(
+                store, project=project, table_id=table_id, table_name=cand.name,
+                df=cand.df, schema_id=mem["schema_id"],
+                parquet_sha=persisted[-1]["parquet_sha"], ledger=ledger)
+            if canonical:
+                report.notes.append(
+                    f"{cand.name}: mapped to canonical [{canonical['target']}] "
+                    f"({canonical['rows']} rows) via remembered mapping")
+            elif llm and llm.available and not needs_review:
+                prop = maybe_propose(store, llm, schema_id=mem["schema_id"],
+                                     source_schema=[{"name": str(c),
+                                                     "dtype": str(cand.df[c].dtype)}
+                                                    for c in cand.df.columns],
+                                     df=cand.df, source_name=cand.name)
+                if prop and prop["status"] == "proposed":
+                    report.notes.append(
+                        f"{cand.name}: mapping PROPOSED → [{prop['target']}] "
+                        f"(conf {prop['confidence']:.2f}) — approve with "
+                        f"`docbrain approve {prop['mapping_id']}`")
+                elif prop and prop["status"] == "needs_transform":
+                    report.notes.append(
+                        f"{cand.name}: matches [{prop['target']}] but needs a "
+                        f"reshape — out of scope for auto-mapping (flagged)")
+
         report.tables.append({
             "name": cand.name, "source": cand.source_ref, "method": cand.method,
             "shape": list(cand.df.shape), "confidence": round(conf, 2),
             "needs_review": needs_review, "issues": issues,
             "schema_reused": mem["reused"], "drift": mem["drift"],
+            "canonical": canonical,
         })
         if mem["reused"]:
             report.notes.append(f"{cand.name}: schema recognized from memory"

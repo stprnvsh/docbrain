@@ -101,6 +101,30 @@ table schemas with sample rows, and text excerpts, reply with ONE JSON object:
 Be concrete (name the actual columns/measures/time ranges you see).
 """
 
+MAP_SYSTEM = """\
+You map an extracted source table onto one of an organization's canonical
+TARGET schemas (or decide none fits). Reply with ONE JSON object:
+
+{"target": "<target name>" | "none",
+ "mapping": {"<target_col>": {"source": "<source_col>",
+                              "cast": "str|int|float|date|bool"?,
+                              "scale": <number>?}
+             | {"const": <value>}},
+ "confidence": 0.0-1.0,
+ "rationale": "<1-2 lines>",
+ "needs_transform": true?   // set ONLY if a reshape (melt/pivot/aggregate)
+                            // would be required — do NOT guess a wrong mapping
+}
+
+Rules:
+- Map only when the source table genuinely represents the target concept —
+  don't force a fit. "none" is a good answer.
+- Every mapped source column must exist in source_columns exactly.
+- Use "const" for values implied by context (e.g. a region name in the table
+  name) only when unambiguous.
+- scale converts units (e.g. km→m: 1000). Omit when unneeded.
+"""
+
 LINK_CONFIRM_SYSTEM = """\
 You judge candidate relationships between columns of tables extracted from
 different files in one project. For each candidate decide:
