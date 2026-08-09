@@ -108,6 +108,8 @@ def records_extract(path: Path, head_text: str, llm, sandbox,
     if outcome.winning_code and store is not None:
         sid = register_script(store, outcome.winning_code, outcome.format_id,
                               outcome.format_description, signature)
+        for c in outcome.tables:
+            c.sketch["script_id"] = sid
         notes.append(f"[script-registry] saved new parser '{outcome.format_id}' ({sid})")
     return outcome.tables, notes
 

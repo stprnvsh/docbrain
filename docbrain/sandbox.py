@@ -58,9 +58,16 @@ class RunResult:
 
 
 class Sandbox:
-    def __init__(self, timeout: int = SANDBOX_TIMEOUT):
+    """The single execution surface for agent-written code. When a ledger is
+    attached, every run is recorded automatically — input hashes, code hash,
+    output hashes, exit status — so provenance is captured by the harness,
+    never self-reported by the agent."""
+
+    def __init__(self, timeout: int = SANDBOX_TIMEOUT, ledger=None):
         self.timeout = timeout
         self.mode = self._pick_mode()
+        self.ledger = ledger
+        self.context: dict = {}   # callers set {project, doc_id, phase}
 
     def _pick_mode(self) -> str:
         if platform.system() == "Darwin" and shutil.which("sandbox-exec"):
@@ -70,7 +77,25 @@ class Sandbox:
         return "subprocess"
 
     def run_python(self, code: str, inputs: dict[str, Path]) -> RunResult:
-        return self._exec(code, inputs, mode=self.mode)
+        res = self._exec(code, inputs, mode=self.mode)
+        if self.ledger is not None:
+            from .ledger import sha256_file, sha256_text
+            try:
+                self.ledger.append("sandbox-exec", {
+                    **{k: self.context[k] for k in ("project", "doc_id") if k in self.context},
+                    "code_sha": sha256_text(code),
+                    "inputs": [{"name": n, "sha256": sha256_file(p),
+                                "bytes": p.stat().st_size} for n, p in inputs.items()],
+                    "outputs": [{"name": p.name, "sha256": sha256_file(p),
+                                 "bytes": p.stat().st_size} for p in res.outputs],
+                    "ok": res.ok,
+                    "detail": {"phase": self.context.get("phase"),
+                               "sandbox_mode": res.mode, "rc": res.returncode,
+                               "stdout_sha": sha256_text(res.stdout)},
+                })
+            except Exception:
+                pass  # never let provenance recording break extraction
+        return res
 
     def _exec(self, code: str, inputs: dict[str, Path], mode: str, quick: bool = False) -> RunResult:
         workdir = Path(tempfile.mkdtemp(prefix="docbrain-sbx-"))

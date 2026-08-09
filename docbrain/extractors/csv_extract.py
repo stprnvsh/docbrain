@@ -56,7 +56,9 @@ def extract(path: Path) -> tuple[list[TableCandidate], dict]:
         header_rows = 0 if numericish > len(first) / 2 else 1
         if header_rows == 0:
             flags.append("no_obvious_header")
-        df = frame_from_grid(rows, header_rows)
+        origins: dict = {}
+        df = frame_from_grid(rows, header_rows, origins_out=origins)
+        col_origins = {c: f"field {i + 1}" for c, i in origins.items() if c in df.columns}
         name_suffix = f"_block{block.index + 1}" if len(sniff.blocks) > 1 else ""
         candidates.append(TableCandidate(
             df=df,
@@ -66,7 +68,8 @@ def extract(path: Path) -> tuple[list[TableCandidate], dict]:
             flags=flags,
             notes=notes,
             sketch={"delimiter": sniff.delimiter, "encoding": sniff.encoding,
-                    "ragged_rows": bad[:20], "n_lines": block.n_lines},
+                    "ragged_rows": bad[:20], "n_lines": block.n_lines,
+                    "column_origins": col_origins, "origin_trust": "derived"},
         ))
     meta = {"encoding": sniff.encoding, "delimiter": sniff.delimiter,
             "n_blocks": len(sniff.blocks), "notes": sniff.notes}

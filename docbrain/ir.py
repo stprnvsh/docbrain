@@ -86,9 +86,12 @@ def infer_types(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def frame_from_grid(grid: list[list], header_rows: int) -> pd.DataFrame:
+def frame_from_grid(grid: list[list], header_rows: int,
+                    origins_out: dict | None = None) -> pd.DataFrame:
     """Build a DataFrame from a raw value grid. Multi-row headers are combined
-    with ' / '; zero header rows get positional names."""
+    with ' / '; zero header rows get positional names. When origins_out is
+    given, it is filled with {output_column_name: source_column_index} for
+    column-level provenance (indices are grid positions, pre-drop)."""
     body = grid[header_rows:]
     width = max((len(r) for r in grid), default=0)
 
@@ -108,6 +111,8 @@ def frame_from_grid(grid: list[list], header_rows: int) -> pd.DataFrame:
                     parts.append(str(v).strip())
             cols.append(" / ".join(parts) if parts else f"col_{i}")
     cols = dedupe_columns([normalize_col(c) for c in cols])
+    if origins_out is not None:
+        origins_out.update({c: i for i, c in enumerate(cols)})
     df = pd.DataFrame([pad(r) for r in body], columns=cols)
     df = df.dropna(axis=0, how="all").dropna(axis=1, how="all")
     df.columns = [str(c) for c in df.columns]

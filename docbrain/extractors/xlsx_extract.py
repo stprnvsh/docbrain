@@ -15,9 +15,13 @@ def extract(path: Path) -> tuple[list[TableCandidate], dict]:
     for isl in islands:
         per_sheet_counter[isl.sheet] = per_sheet_counter.get(isl.sheet, 0) + 1
         idx = per_sheet_counter[isl.sheet]
-        df = frame_from_grid(isl.grid, isl.header_rows)
+        origins: dict = {}
+        df = frame_from_grid(isl.grid, isl.header_rows, origins_out=origins)
         if df.empty:
             continue
+        from openpyxl.utils import get_column_letter
+        col_origins = {c: f"{isl.sheet}!{get_column_letter(isl.c0 + i + 1)}"
+                       for c, i in origins.items() if c in df.columns}
         name = f"{path.stem}_{normalize_col(isl.sheet)}_t{idx}"
         candidates.append(TableCandidate(
             df=df,
@@ -34,6 +38,8 @@ def extract(path: Path) -> tuple[list[TableCandidate], dict]:
                 "merged_in_header": isl.merged_in_header,
                 "grid_preview": grid_preview(isl.grid),
                 "shape": [isl.n_rows, isl.n_cols],
+                "column_origins": col_origins,
+                "origin_trust": "derived",
             },
         ))
     meta = {"n_islands": len(islands),

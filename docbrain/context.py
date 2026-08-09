@@ -168,7 +168,8 @@ SQL_FORBIDDEN = re.compile(r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|ATTACH|CO
 MAX_EVIDENCE_TURNS = 4
 
 
-def ask(store: Store, project: str, question: str, llm: LLM) -> str:
+def ask(store: Store, project: str, question: str, llm: LLM,
+        ledger=None) -> str:
     if not llm.available:
         return "No LLM backend available — set ANTHROPIC_API_KEY or install the claude CLI."
     ctx_path = PATHS.context_path(project)
@@ -177,14 +178,26 @@ def ask(store: Store, project: str, question: str, llm: LLM) -> str:
     context_pack = ctx_path.read_text()
 
     tables = store.tables(project)
+    view_to_table: dict[str, str] = {}
     conn = duckdb.connect()
     for t in tables:
         safe = re.sub(r"[^\w]", "_", t["name"])
+        view_to_table[safe] = t["table_id"]
         try:
             conn.execute(f"CREATE OR REPLACE VIEW {safe} AS "
                          f"SELECT * FROM read_parquet('{t['parquet_path']}')")
         except Exception:
             continue
+
+    queries: list[dict] = []      # provenance: every SQL + tables it touched
+    touched: set[str] = set()
+
+    def _record(q: str, ok: bool):
+        hit = sorted({v for v in view_to_table
+                      if re.search(rf"\b{re.escape(v)}\b", q)})
+        for v in hit:
+            touched.add(view_to_table[v])
+        queries.append({"sql": q, "ok": ok, "tables": hit})
 
     transcript: list[dict] = []
     for _turn in range(MAX_EVIDENCE_TURNS + 1):
@@ -199,17 +212,36 @@ def ask(store: Store, project: str, question: str, llm: LLM) -> str:
         if action == "answer":
             conf = step.get("confidence")
             suffix = f"\n\n_confidence: {conf}_" if conf is not None else ""
-            return step.get("answer", "").strip() + suffix
+            answer = step.get("answer", "").strip()
+            if ledger is not None:
+                entry = ledger.append("ask", {
+                    "project": project,
+                    "detail": {"question": question, "queries": queries,
+                               "tables_touched": sorted(touched),
+                               "confidence": conf},
+                    "ok": True,
+                })
+                for tid in touched:
+                    store.bump_usage("table", tid)
+                    store.add_lineage("answer", entry["entry_hash"], "queried",
+                                      "table", tid, entry["entry_hash"], {})
+                name_of = {t["table_id"]: t["name"] for t in tables}
+                evidence = ", ".join(name_of.get(t, t) for t in sorted(touched)) or "text search only"
+                suffix += f"\n_evidence (ledger-verified): {evidence}_"
+            return answer + suffix
         if action == "sql":
             q = step.get("query", "")
             if SQL_FORBIDDEN.search(q):
+                _record(q, ok=False)
                 transcript.append({"sql": q, "error": "only SELECT queries allowed"})
                 continue
             try:
                 df = conn.execute(q).fetchdf().head(40)
+                _record(q, ok=True)
                 transcript.append({"sql": q, "rows": json.loads(
                     df.to_json(orient="records", date_format="iso"))})
             except Exception as e:
+                _record(q, ok=False)
                 transcript.append({"sql": q, "error": str(e)[:400]})
             continue
         if action == "search":

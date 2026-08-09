@@ -31,13 +31,15 @@ def ingest(project: str, paths: list[Path], force: bool = typer.Option(False, "-
            link: bool = typer.Option(True, help="run cross-file linking after ingest")):
     """Ingest files into a project: classify -> extract -> refine -> validate -> store."""
     from .ingest import ingest_file
+    from .ledger import Ledger
     from .linker import link_project
 
     store = Store()
     llm = _llm(no_llm)
-    sandbox = Sandbox()
+    ledger = Ledger(store=store)
+    sandbox = Sandbox(ledger=ledger)
     console.print(f"[dim]llm backend: {llm.backend if llm else 'none'} | "
-                  f"sandbox: {sandbox.mode}[/dim]")
+                  f"sandbox: {sandbox.mode} | ledger: {ledger.path.name}[/dim]")
 
     files: list[Path] = []
     for p in paths:
@@ -47,7 +49,8 @@ def ingest(project: str, paths: list[Path], force: bool = typer.Option(False, "-
             files.append(p)
 
     for f in files:
-        rep = ingest_file(store, project, f, llm=llm, sandbox=sandbox, force=force)
+        rep = ingest_file(store, project, f, llm=llm, sandbox=sandbox, force=force,
+                          ledger=ledger)
         tag = {"ingested": "green", "partial": "yellow", "failed": "red",
                "unsupported": "red"}.get(rep.status, "white")
         skipmark = " [dim](skipped, already ingested)[/dim]" if rep.skipped else ""
@@ -126,10 +129,11 @@ def context(project: str, rebuild: bool = typer.Option(False, "--rebuild"),
 def ask(project: str, question: str):
     """Ask a question across all documents in a project (SQL + text evidence loop)."""
     from .context import ask as _ask
+    from .ledger import Ledger
     store = Store()
     llm = LLM()
     console.print(f"[dim]llm backend: {llm.backend}[/dim]")
-    answer = _ask(store, project, question, llm)
+    answer = _ask(store, project, question, llm, ledger=Ledger(store=store))
     console.print(answer)
     store.close()
 
@@ -147,6 +151,131 @@ def review(project: str):
         for i in t["issues"]:
             console.print(f"   · {i}")
         console.print(f"   parquet: {t['parquet_path']}")
+    store.close()
+
+
+@app.command()
+def provenance(project: str, name: str = typer.Argument(None,
+               help="table name or filename; omit for project overview")):
+    """Where data came from — lineage, runs, and usage from the ledger."""
+    from .ledger import Ledger
+    store = Store()
+    ledger = Ledger(store=store)
+
+    if name is None:
+        chain = ledger.verify_chain()
+        state = "[green]intact[/green]" if chain["ok"] else f"[red]BROKEN at {chain['first_break']}[/red]"
+        console.print(f"ledger: {chain['entries']} entries, chain {state}")
+        rows = store.conn.execute("""
+            SELECT u.entity_kind, coalesce(t.name, d.filename, s.format_id, u.entity_id),
+                   u.uses
+            FROM usage u
+            LEFT JOIN extracted_tables t ON t.table_id = u.entity_id
+            LEFT JOIN documents d ON d.doc_id = u.entity_id
+            LEFT JOIN script_registry s ON s.script_id = u.entity_id
+            WHERE coalesce(t.project, d.project, ?) = ?
+            ORDER BY u.uses DESC LIMIT 15
+        """, [project, project]).fetchall()
+        rt = RichTable(show_header=True, header_style="dim")
+        for col in ("kind", "entity", "uses"):
+            rt.add_column(col)
+        for r in rows:
+            rt.add_row(r[0], str(r[1])[:60], str(r[2]))
+        console.print(rt)
+        store.close()
+        return
+
+    tables = [t for t in store.tables(project) if name.lower() in t["name"].lower()]
+    docs = [d for d in store.documents(project) if name.lower() in d["filename"].lower()]
+
+    for t in tables[:3]:
+        console.print(f"\n[bold]{t['name']}[/bold]  ({t['n_rows']}×{t['n_cols']}, "
+                      f"method={t['method']}, conf {t['confidence']:.2f})")
+        for l in store.lineage_of(t["table_id"]):
+            if l["output_id"] != t["table_id"]:
+                continue
+            if l["relation"] == "extracted_from":
+                fname = next((d["filename"] for d in store.documents(project)
+                              if d["doc_id"] == l["input_id"]), l["input_id"])
+                det = l["detail"]
+                console.print(f"  extracted_from  [cyan]{fname}[/cyan] "
+                              f"({det.get('source_ref')})")
+                console.print(f"    file sha256    {det.get('file_sha', '?')[:16]}…")
+                console.print(f"    parquet sha256 {det.get('parquet_sha', '?')[:16]}…")
+                console.print(f"    ledger run     {l['run_hash'][:16]}…" if l["run_hash"] else "")
+            elif l["relation"] == "produced_by_code":
+                s = next((s for s in store.scripts() if s["script_id"] == l["input_id"]), None)
+                console.print(f"  produced_by     script [magenta]{s['format_id'] if s else l['input_id']}[/magenta] "
+                              f"(wins {s['success_count']}, fails {s['fail_count']})" if s else "")
+        origin_cols = [c for c in t["schema"] if c.get("origin")]
+        if origin_cols:
+            console.print("  column origins (derived):")
+            for c in origin_cols[:12]:
+                console.print(f"    {c['name']} ← {c['origin']}")
+        uses = store.usage_of("table", t["table_id"])
+        console.print(f"  queried by ask: {uses}×")
+
+    for d in docs[:3]:
+        console.print(f"\n[bold]{d['filename']}[/bold]  ({d['filetype']}, {d['status']})")
+        derived = [t for t in store.tables(project) if t["doc_id"] == d["doc_id"]]
+        console.print(f"  ingested {store.usage_of('document', d['doc_id'])}×, "
+                      f"{len(derived)} table(s) derived")
+        runs = store.runs_for(d["doc_id"], limit=8)
+        for r in runs:
+            n_in = len(r["inputs"] or [])
+            n_out = len(r["outputs"] or [])
+            code = f" code={r['code_sha'][:12]}…" if r.get("code_sha") else ""
+            console.print(f"  [dim]{str(r['ts'])[:19]}[/dim] {r['kind']:12s} "
+                          f"in={n_in} out={n_out} ok={r['ok']}{code}")
+    if not tables and not docs:
+        console.print(f"[yellow]nothing named like {name!r} in {project}[/yellow]")
+    store.close()
+
+
+@app.command()
+def verify(project: str = typer.Argument(None)):
+    """Re-verify everything: ledger chain, source-file hashes, output hashes."""
+    from .ledger import Ledger, sha256_file
+    store = Store()
+    ledger = Ledger(store=store)
+
+    chain = ledger.verify_chain()
+    ok = "[green]OK[/green]" if chain["ok"] else f"[red]BROKEN: {chain['first_break']}[/red]"
+    console.print(f"ledger chain   : {chain['entries']} entries {ok}")
+
+    projects = [project] if project else [r[0] for r in store.conn.execute(
+        "SELECT DISTINCT project FROM documents").fetchall()]
+    src_ok = src_changed = src_missing = 0
+    out_ok = out_bad = 0
+    for proj in projects:
+        for d in store.documents(proj):
+            p = Path(d["path"])
+            row = store.conn.execute("SELECT content_hash FROM documents WHERE doc_id=?",
+                                     [d["doc_id"]]).fetchone()
+            if not p.exists():
+                src_missing += 1
+                console.print(f"  [yellow]source missing[/yellow] {d['filename']}")
+            elif sha256_file(p) != row[0]:
+                src_changed += 1
+                console.print(f"  [red]source CHANGED since ingest[/red] {d['filename']}")
+            else:
+                src_ok += 1
+        rows = store.conn.execute("""
+            SELECT t.name, t.parquet_path, l.detail FROM extracted_tables t
+            JOIN lineage l ON l.output_id = t.table_id AND l.relation='extracted_from'
+            WHERE t.project=?""", [proj]).fetchall()
+        import json as _json
+        for tname, pq, detail in rows:
+            want = _json.loads(detail or "{}").get("parquet_sha")
+            p = Path(pq)
+            if want and p.exists() and sha256_file(p) == want:
+                out_ok += 1
+            else:
+                out_bad += 1
+                console.print(f"  [red]output hash mismatch/missing[/red] {tname}")
+    console.print(f"source files   : {src_ok} verified, {src_changed} changed, {src_missing} missing")
+    console.print(f"output tables  : {out_ok} verified, {out_bad} mismatched "
+                  f"[dim](tables from runs before the ledger existed have no recorded hash)[/dim]")
     store.close()
 
 

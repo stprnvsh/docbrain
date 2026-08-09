@@ -78,7 +78,10 @@ def try_script(sandbox: Sandbox, script: dict, path: Path,
     manifest = load_manifest(res)
     if not manifest or not manifest["tables"]:
         return []
-    return manifest_to_candidates(manifest, doc_stem, path.name, method="script")
+    cands = manifest_to_candidates(manifest, doc_stem, path.name, method="script")
+    for c in cands:
+        c.sketch["script_id"] = script["script_id"]
+    return cands
 
 
 def register_script(store: Store, code: str, format_id: str, description: str,

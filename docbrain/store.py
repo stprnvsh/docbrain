@@ -77,6 +77,34 @@ CREATE TABLE IF NOT EXISTS chunks (
     loc TEXT,                  -- e.g. "page 2"
     text TEXT
 );
+CREATE TABLE IF NOT EXISTS runs (
+    entry_hash TEXT PRIMARY KEY,   -- ledger chain id
+    ts TIMESTAMP,
+    kind TEXT,                     -- sandbox-exec | ingest | vision | ask | context-build
+    project TEXT,
+    doc_id TEXT,
+    code_sha TEXT,
+    inputs JSON,                   -- [{name, sha256, bytes}]
+    outputs JSON,                  -- [{name, sha256, rows?}]
+    ok BOOLEAN,
+    detail JSON
+);
+CREATE TABLE IF NOT EXISTS lineage (
+    output_kind TEXT,              -- table | answer | context
+    output_id TEXT,
+    relation TEXT,                 -- extracted_from | produced_by_code | queried
+    input_kind TEXT,               -- document | script | table
+    input_id TEXT,
+    run_hash TEXT,                 -- ledger entry_hash of the producing run
+    detail JSON
+);
+CREATE TABLE IF NOT EXISTS usage (
+    entity_kind TEXT,
+    entity_id TEXT,
+    uses INTEGER,
+    last_used TIMESTAMP,
+    PRIMARY KEY (entity_kind, entity_id)
+);
 CREATE TABLE IF NOT EXISTS script_registry (
     script_id TEXT PRIMARY KEY,
     format_id TEXT,
@@ -154,8 +182,15 @@ class Store:
 
     def add_table(self, *, table_id: str, doc_id: str, project: str, name: str,
                   source_ref: str, parquet_path: Path, df: pd.DataFrame, method: str,
-                  confidence: float, needs_review: bool, issues: list[str]):
-        schema = [{"name": str(c), "dtype": str(df[c].dtype)} for c in df.columns]
+                  confidence: float, needs_review: bool, issues: list[str],
+                  origins: dict | None = None, origin_trust: str | None = None):
+        schema = []
+        for c in df.columns:
+            entry = {"name": str(c), "dtype": str(df[c].dtype)}
+            if origins and str(c) in origins:
+                entry["origin"] = origins[str(c)]
+                entry["trust"] = origin_trust or "derived"
+            schema.append(entry)
         self.conn.execute(
             "INSERT INTO extracted_tables VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [table_id, doc_id, project, name, source_ref, str(parquet_path),
@@ -254,6 +289,60 @@ class Store:
                 scored.append({"chunk_id": cid, "loc": loc, "text": text,
                                "filename": fname, "score": score})
         return sorted(scored, key=lambda x: -x["score"])[:k]
+
+    # -- provenance: runs mirror, lineage, usage --------------------------
+    def mirror_run(self, entry: dict):
+        self.conn.execute(
+            "INSERT OR REPLACE INTO runs VALUES (?,?,?,?,?,?,?,?,?,?)",
+            [entry["entry_hash"], entry["ts"], entry["kind"],
+             entry.get("project"), entry.get("doc_id"), entry.get("code_sha"),
+             json.dumps(entry.get("inputs", [])), json.dumps(entry.get("outputs", [])),
+             entry.get("ok"), json.dumps(entry.get("detail", {}))])
+
+    def add_lineage(self, output_kind: str, output_id: str, relation: str,
+                    input_kind: str, input_id: str, run_hash: str | None = None,
+                    detail: dict | None = None):
+        self.conn.execute("INSERT INTO lineage VALUES (?,?,?,?,?,?,?)",
+                          [output_kind, output_id, relation, input_kind, input_id,
+                           run_hash, json.dumps(detail or {})])
+
+    def bump_usage(self, entity_kind: str, entity_id: str, n: int = 1):
+        self.conn.execute("""
+            INSERT INTO usage VALUES (?, ?, ?, ?)
+            ON CONFLICT (entity_kind, entity_id)
+            DO UPDATE SET uses = usage.uses + ?, last_used = excluded.last_used
+        """, [entity_kind, entity_id, n, _now(), n])
+
+    def usage_of(self, entity_kind: str, entity_id: str) -> int:
+        row = self.conn.execute(
+            "SELECT uses FROM usage WHERE entity_kind=? AND entity_id=?",
+            [entity_kind, entity_id]).fetchone()
+        return row[0] if row else 0
+
+    def lineage_of(self, output_id: str) -> list[dict]:
+        cols = ["output_kind", "output_id", "relation", "input_kind", "input_id",
+                "run_hash", "detail"]
+        rows = self.conn.execute(
+            f"SELECT {', '.join(cols)} FROM lineage WHERE output_id=? OR input_id=?",
+            [output_id, output_id]).fetchall()
+        return [dict(zip(cols, r, strict=True)) | {"detail": json.loads(r[6] or "{}")}
+                for r in rows]
+
+    def runs_for(self, ident: str, limit: int = 20) -> list[dict]:
+        cols = ["entry_hash", "ts", "kind", "project", "doc_id", "code_sha",
+                "inputs", "outputs", "ok", "detail"]
+        rows = self.conn.execute(f"""
+            SELECT {', '.join(cols)} FROM runs
+            WHERE doc_id = ? OR entry_hash = ? OR inputs LIKE ? OR outputs LIKE ?
+            ORDER BY ts DESC LIMIT {int(limit)}
+        """, [ident, ident, f"%{ident}%", f"%{ident}%"]).fetchall()
+        out = []
+        for r in rows:
+            d = dict(zip(cols, r, strict=True))
+            for k in ("inputs", "outputs", "detail"):
+                d[k] = json.loads(d[k] or "null")
+            out.append(d)
+        return out
 
     # -- curated extraction scripts --------------------------------------
     def scripts(self) -> list[dict]:
