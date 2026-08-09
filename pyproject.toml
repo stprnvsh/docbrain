@@ -1,0 +1,30 @@
+[project]
+name = "docbrain"
+version = "0.1.0"
+description = "Local-first multi-format document understanding pipeline with a cross-document context brain"
+requires-python = ">=3.12"
+dependencies = [
+    "pymupdf>=1.24",
+    "pymupdf4llm>=0.0.17",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "duckdb>=1.0",
+    "clevercsv>=0.8",
+    "charset-normalizer>=3.3",
+    "typer>=0.12",
+    "rich>=13",
+    "pydantic>=2.7",
+    "anthropic>=0.40",
+    "matplotlib>=3.9",
+]
+
+[project.scripts]
+docbrain = "docbrain.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["docbrain"]

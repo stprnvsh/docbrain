@@ -1,0 +1,93 @@
+# docbrain
+
+Local-first, sandboxed, multi-format document understanding pipeline **plus** a
+cross-document context brain: define a project, throw files at it (xlsx, csv,
+pdf — messy ones), and get back validated tables, a schema memory that
+recognizes recurring file shapes, cross-file links, and a single per-project
+context pack you can query in natural language.
+
+```
+file in → router (format + quality classify)
+        → specialist track (xlsx islands | csv dialect/encoding | pdf page-class)
+        → structural sketch
+        → sandboxed agentic refinement (code exec + vision fallback, only when flagged)
+        → validator → confidence score → parquet + catalog
+                        ↳ below threshold → human review queue
+project → schema memory + cross-file linker → context.md / context.json → ask
+```
+
+## Quick start
+
+```bash
+uv venv && uv pip install -e .
+
+# demo corpus (messy xlsx w/ merged headers, cp1252 csv w/ ragged rows,
+# pdf with a native page + a scanned page)
+.venv/bin/python scripts/make_samples.py
+docbrain ingest demo samples/
+docbrain tables demo
+docbrain context demo
+docbrain ask demo "total revenue by region across all files?"
+docbrain review demo        # what the confidence gate quarantined
+```
+
+Data lands in `~/.docbrain/` (override with `DOCBRAIN_HOME`): one DuckDB
+catalog + per-project Parquet tables + sketches + context packs.
+
+## LLM backends (auto-detected)
+
+| backend      | when                            | notes                              |
+|--------------|--------------------------------|------------------------------------|
+| `anthropic`  | `ANTHROPIC_API_KEY` set         | vision via Messages API            |
+| `claude-cli` | `claude` binary on PATH         | uses your Claude Code subscription auth; vision via Read tool |
+| `none`       | neither                         | heuristics only; ambiguity → review queue |
+
+Override with `DOCBRAIN_LLM=anthropic|claude-cli|none`, model with
+`DOCBRAIN_MODEL`. Agent refinement: `DOCBRAIN_AGENT=auto|always|never`
+(`auto` = only tables flagged ambiguous by the heuristics).
+
+## What implements what (mapping to the research)
+
+| pipeline piece | pattern source | file |
+|---|---|---|
+| per-page PDF classify before OCR/vision | Firecrawl pdf-inspector | `detectors/pdf_pages.py` |
+| xlsx multi-table island detection + merged headers | eparse / TableSense problem class | `detectors/xlsx_tables.py` |
+| csv encoding + dialect sniff + block split | CleverCSV + brief §4 | `detectors/csv_dialect.py` |
+| ragged-row repair to modal width | Tasheeh (light version) | `extractors/csv_extract.py` |
+| understand → execute (sandboxed code) → validate loop | SheetBrain / SheetAgent | `agents/loop.py`, `sandbox.py`, `validate.py` |
+| render-region vision fallback, one primitive two callers | SpreadsheetAgent / agentic-PDF | `agents/render.py`, `agents/loop.py` |
+| confidence gate + review queue | agentic-extraction literature (~95% field conf) | `validate.py`, `cli.py review` |
+| schema fingerprint registry + contracts + drift | brief §"schema memory" | `schema_memory.py`, `store.py` |
+| cross-file SAME_AS / JOINABLE links (heuristic + LLM confirm) | Valentine-style schema matching, v0 | `linker.py` |
+| per-project context pack + evidence-loop Q&A | the actual product | `context.py` |
+
+## Sandbox
+
+Agent-written code runs via `sandbox.py`:
+- macOS: `sandbox-exec` — network **denied** (verified at startup), writes
+  confined to the job dir, inputs mounted read-only, CPU/file-size rlimits.
+- elsewhere/fallback: subprocess with rlimits + minimal env (no network denial
+  — the run records which mode executed).
+
+Treat documents as adversarial: the model only ever sees file *content* via
+its own sandboxed code or rendered images; extracted text is never executed.
+
+## Cloud swap points (deliberate seams)
+
+| local v0 | AWS/GCP later |
+|---|---|
+| `~/.docbrain` Parquet + DuckDB catalog | S3/GCS Parquet + Iceberg/Glue/BigLake |
+| `sandbox.py` subprocess/sandbox-exec | Firecracker/Docker executor, same `run_python` contract |
+| `llm.py` claude-cli/anthropic | Bedrock / Vertex / first-party API behind the same class |
+| CLI `ingest` loop | SQS fan-out + Step Functions/Temporal, same `ingest_file()` |
+| token-overlap chunk search | embeddings/FTS/LightRAG |
+
+## Known v0 gaps (deliberate)
+
+- docx/pptx, legacy .xls, shapefiles, Visum .mtx, zip archives: routed +
+  recorded as unsupported, not parsed.
+- Linker is pairwise heuristic + one LLM confirm pass — no entity resolution yet.
+- Chunk search is token overlap, not embeddings.
+- Sandbox is process-level isolation, not a microVM.
+- No cross-project context yet (the catalog schema already carries `project`,
+  so it's an additive step).
