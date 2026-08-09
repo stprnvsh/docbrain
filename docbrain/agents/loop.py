@@ -31,6 +31,10 @@ class RefineOutcome:
     gave_up: bool = False
     iterations: int = 0
     log: list[str] = field(default_factory=list)
+    # Set when the agent authored a parser that validated (curation inputs):
+    winning_code: str | None = None
+    format_id: str | None = None
+    format_description: str = ""
 
 
 def _state_prompt(candidate: TableCandidate, filename: str, attempts: list[dict],
@@ -136,6 +140,67 @@ def refine_table(llm: LLM, sandbox: Sandbox, file_path: Path,
 
     outcome.accepted_original = True
     outcome.log.append("max iterations reached; keeping heuristic result")
+    return outcome
+
+
+def parse_unknown_text(llm: LLM, sandbox: Sandbox, file_path: Path,
+                       head_text: str, doc_stem: str,
+                       reference_script: str | None = None) -> RefineOutcome:
+    """Unknown text format (controller logs, proprietary exports): the agent
+    authors a reusable parser script, run in the sandbox against the
+    standardized manifest contract. The winning script is exposed on the
+    outcome (winning_code/format_id) so the registry can curate it."""
+    from ..sandbox import load_manifest
+    from ..scripts_registry import manifest_to_candidates
+
+    outcome = RefineOutcome(tables=[])
+    attempts: list[dict] = []
+    size = file_path.stat().st_size
+    for it in range(1, MAX_ITERS + 1):
+        outcome.iterations = it
+        state = {
+            "filename": file_path.name,
+            "file_size_bytes": size,
+            "head": head_text[:3000],
+            "reference_script": (reference_script or "")[:3000] or None,
+            "previous_attempts": attempts,
+        }
+        try:
+            action = llm.complete_json(json.dumps(state, default=str, indent=1),
+                                       system=prompts.UNKNOWN_TEXT_SYSTEM,
+                                       max_tokens=8000)
+        except (LLMError, ValueError) as e:
+            outcome.log.append(f"iter{it}: llm error: {e}")
+            return outcome
+        kind = (action or {}).get("action")
+        if kind == "skip":
+            outcome.gave_up = True
+            outcome.log.append(f"iter{it}: skip ({action.get('reason', '')})")
+            return outcome
+        if kind != "code":
+            attempts.append({"error": f"unrecognized action {kind!r}"})
+            continue
+        code = action.get("code", "")
+        res = sandbox.run_python(code, {file_path.name: file_path})
+        manifest = load_manifest(res)
+        desc = describe_outputs(res.outputs)
+        attempts.append({"code": code[:2500], "ok": res.ok,
+                         "stdout": res.stdout[-1500:], "stderr": res.stderr[-1500:],
+                         "manifest_valid": bool(manifest and manifest["tables"]),
+                         "manifest_problems": (manifest or {}).get("_invalid", []),
+                         "outputs": desc})
+        outcome.log.append(f"iter{it}: parser run ok={res.ok} "
+                           f"manifest={'ok' if manifest and manifest['tables'] else 'MISSING/EMPTY'} "
+                           f"({action.get('reason', '')[:80]})")
+        if res.ok and manifest and manifest["tables"]:
+            outcome.tables = manifest_to_candidates(
+                manifest, doc_stem, file_path.name, method="agent")
+            outcome.winning_code = code
+            outcome.format_id = manifest.get("format_id") or action.get("format_id") \
+                or f"{doc_stem}-records"
+            outcome.format_description = action.get("reason", "")[:200]
+            return outcome
+    outcome.log.append("max iterations reached; no usable parse")
     return outcome
 
 

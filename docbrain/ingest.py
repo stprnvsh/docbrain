@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .agents.loop import refine_table, vision_extract_page
 from .config import AGENT_MODE, PATHS
-from .extractors import csv_extract, pdf_extract, xlsx_extract
+from .extractors import csv_extract, pdf_extract, txt_extract, xlsx_extract
 from .ir import TableCandidate
 from .llm import LLM, LLMError
 from .router import detect_type
@@ -77,8 +77,19 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
         if ftype == "csv":
             candidates, meta = csv_extract.extract(path)
             if meta.get("unstructured"):
+                # A .csv that isn't actually delimited: same records path as txt.
                 chunks.append({"loc": "file head", "text": meta["head_text"]})
-                report.notes.append("not a delimited table — header text captured for context")
+                report.notes.append("not a delimited table — routed to records path")
+                agent_tables, notes = txt_extract.records_extract(
+                    path, meta["head_text"], llm, sandbox or Sandbox(),
+                    AGENT_MODE != "never", store=store)
+                report.notes.extend(notes)
+                candidates.extend(agent_tables)
+        elif ftype == "txt":
+            candidates, chunks, meta = txt_extract.extract(
+                path, llm=llm, sandbox=sandbox or Sandbox(),
+                agent_enabled=AGENT_MODE != "never", store=store)
+            report.notes.extend(meta.get("notes", []))
         elif ftype == "xlsx":
             candidates, meta = xlsx_extract.extract(path)
         elif ftype == "pdf":

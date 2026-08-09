@@ -8,13 +8,30 @@ context pack you can query in natural language.
 
 ```
 file in → router (format + quality classify)
-        → specialist track (xlsx islands | csv dialect/encoding | pdf page-class)
+        → specialist track (xlsx islands | csv dialect/encoding |
+                            pdf page-class | txt triage)
         → structural sketch
         → sandboxed agentic refinement (code exec + vision fallback, only when flagged)
         → validator → confidence score → parquet + catalog
                         ↳ below threshold → human review queue
 project → schema memory + cross-file linker → context.md / context.json → ask
 ```
+
+The **txt track** triages every text file three ways: `delimited` (a real
+delimiter + consistent row widths → CSV machinery), `records` (structured but
+proprietary — controller logs, exports), `prose` (→ chunks for the context
+layer). Proven on VR-Netlog traffic-signal logs: 6,355 per-second records
+parsed into a typed table by an agent-written parser, first iteration.
+
+**Nothing format-specific is hardcoded for `records` files.** The agent authors
+reusable parser *scripts*; a **curated script registry** (`~/.docbrain/scripts`
++ catalog table, inspect with `docbrain scripts`) keeps them keyed by a format
+signature. Similar file arrives → remembered scripts run first (zero LLM
+calls); only on validation failure does the agent write/adapt one (seeded with
+the best near-miss script). Every script — remembered or fresh — must satisfy
+one **standardized output contract**: `OUT/manifest.json` (format_id, tables,
+columns, descriptions) + typed parquet, validated by the harness before
+anything enters the catalog. Freedom in *how*, fixed contract for *what*.
 
 ## Quick start
 
@@ -54,6 +71,7 @@ Override with `DOCBRAIN_LLM=anthropic|claude-cli|none`, model with
 | xlsx multi-table island detection + merged headers | eparse / TableSense problem class | `detectors/xlsx_tables.py` |
 | csv encoding + dialect sniff + block split | CleverCSV + brief §4 | `detectors/csv_dialect.py` |
 | ragged-row repair to modal width | Tasheeh (light version) | `extractors/csv_extract.py` |
+| txt triage + agent-written parsers for unknown record formats | SheetAgent execution loop, generalized | `extractors/txt_extract.py`, `agents/loop.py` |
 | understand → execute (sandboxed code) → validate loop | SheetBrain / SheetAgent | `agents/loop.py`, `sandbox.py`, `validate.py` |
 | render-region vision fallback, one primitive two callers | SpreadsheetAgent / agentic-PDF | `agents/render.py`, `agents/loop.py` |
 | confidence gate + review queue | agentic-extraction literature (~95% field conf) | `validate.py`, `cli.py review` |

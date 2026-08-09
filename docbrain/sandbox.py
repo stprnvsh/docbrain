@@ -125,6 +125,47 @@ class Sandbox:
         return "NET_BLOCKED" in res.stdout
 
 
+def load_manifest(res: "RunResult") -> dict | None:
+    """The standardized output contract for agent-run extraction code:
+    OUT/manifest.json declaring format_id + tables (path/name/description/
+    columns). Returns the validated manifest or None. Tables whose parquet is
+    missing or unreadable are dropped from the manifest (recorded under
+    "_invalid"), so callers can trust every surviving entry."""
+    if res.workdir is None:
+        return None
+    mpath = res.workdir / "out" / "manifest.json"
+    if not mpath.exists():
+        return None
+    try:
+        manifest = json.loads(mpath.read_text())
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("tables"), list):
+        return None
+    import pandas as pd
+    valid, invalid = [], []
+    for t in manifest["tables"]:
+        rel = str(t.get("path", ""))
+        p = (res.workdir / "out" / rel).resolve()
+        if not str(p).startswith(str((res.workdir / "out").resolve())) or not p.exists():
+            invalid.append({"path": rel, "error": "missing or outside OUT/"})
+            continue
+        try:
+            df = pd.read_parquet(p)
+        except Exception as e:
+            invalid.append({"path": rel, "error": str(e)[:200]})
+            continue
+        if df.empty:
+            invalid.append({"path": rel, "error": "empty table"})
+            continue
+        t["_abs_path"] = str(p)
+        t["_shape"] = list(df.shape)
+        valid.append(t)
+    manifest["tables"] = valid
+    manifest["_invalid"] = invalid
+    return manifest
+
+
 def describe_outputs(outputs: list[Path]) -> list[dict]:
     """Load head/schema of parquet outputs so the agent can inspect its own work."""
     import pandas as pd

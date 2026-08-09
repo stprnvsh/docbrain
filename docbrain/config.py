@@ -47,6 +47,14 @@ class Paths:
     def context_path(self, project: str) -> Path:
         return self.project_dir(project) / "context.md"
 
+    @property
+    def scripts_dir(self) -> Path:
+        # Curated agent-authored extraction scripts. Global, not per-project:
+        # a parser for a format is knowledge, not project data.
+        d = self.home / "scripts"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
     def ensure(self, project: str) -> None:
         self.tables_dir(project).mkdir(parents=True, exist_ok=True)
         self.sketches_dir(project).mkdir(parents=True, exist_ok=True)

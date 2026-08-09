@@ -151,6 +151,24 @@ def review(project: str):
 
 
 @app.command()
+def scripts():
+    """List curated agent-authored extraction scripts (global registry)."""
+    store = Store()
+    rows = store.scripts()
+    if not rows:
+        console.print("no curated scripts yet")
+    rt = RichTable(show_header=True, header_style="dim")
+    for col in ("format_id", "description", "wins", "fails", "script"):
+        rt.add_column(col)
+    for s in rows:
+        rt.add_row(s["format_id"], (s["description"] or "")[:60],
+                   str(s["success_count"]), str(s["fail_count"]),
+                   s["script_path"])
+    console.print(rt)
+    store.close()
+
+
+@app.command()
 def home():
     """Print the data directory."""
     console.print(str(PATHS.home))

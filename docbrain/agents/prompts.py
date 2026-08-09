@@ -35,6 +35,43 @@ Guidance:
 - Keep code short and deterministic. No comments needed.
 """
 
+UNKNOWN_TEXT_SYSTEM = """\
+You are a data-extraction agent that authors REUSABLE parser scripts. You
+receive the head of a text file that is NOT a standard delimited table (often a
+machine/controller log or a proprietary export). Identify the format and write
+a parser script for it. Your script will be saved to a curated registry and run
+again on future files of the same format — write it for the FORMAT, not just
+this file (no hardcoded filenames beyond the IN/ lookup, no hardcoded counts).
+
+Reply with ONE JSON object. Actions:
+
+1. {"action": "code", "code": "<python>",
+   "format_id": "<short-kebab-id-for-this-format>",
+   "reason": "<what format you identified>"}
+
+   Script contract (STANDARDIZED — the harness validates it):
+   - Input: the file is the only file in IN/ — locate it with
+     `src = next(Path('in').iterdir())`. Read-only. Decode utf-8, falling back
+     to cp1252 then latin-1.
+   - Output: one or more tidy tables as OUT/<name>.parquet (typed columns,
+     snake_case names, no header rows inside data), PLUS OUT/manifest.json:
+       {"format_id": "<same id>",
+        "tables": [{"path": "<name>.parquet", "name": "<snake_case>",
+                    "description": "<1 line: what one row means>",
+                    "columns": [{"name": "...", "description": "..."}]}]}
+   - print() 2-3 lines: format, record count, columns.
+   - pandas is importable. No network. Be defensive: skip non-matching lines,
+     don't crash on stray content.
+
+2. {"action": "skip", "reason": "<short>"}
+   The file has no tabular payload worth extracting (pure prose, binary dump).
+
+If `reference_script` is provided, it solved a similar format but failed
+validation on this file — adapt it rather than starting over. You may be called
+again with your previous attempt's stdout/stderr and output schemas — refine
+the parser then.
+"""
+
 VALIDATE_SYSTEM = """\
 You are the validation module of a document-understanding pipeline. Compare an
 extracted table against the raw evidence and judge whether the extraction is

@@ -77,6 +77,17 @@ CREATE TABLE IF NOT EXISTS chunks (
     loc TEXT,                  -- e.g. "page 2"
     text TEXT
 );
+CREATE TABLE IF NOT EXISTS script_registry (
+    script_id TEXT PRIMARY KEY,
+    format_id TEXT,
+    description TEXT,
+    signature_json JSON,       -- {head_tokens: [...], filename_pattern}
+    script_path TEXT,
+    success_count INTEGER,
+    fail_count INTEGER,
+    created_at TIMESTAMP,
+    last_used TIMESTAMP
+);
 """
 
 
@@ -243,6 +254,31 @@ class Store:
                 scored.append({"chunk_id": cid, "loc": loc, "text": text,
                                "filename": fname, "score": score})
         return sorted(scored, key=lambda x: -x["score"])[:k]
+
+    # -- curated extraction scripts --------------------------------------
+    def scripts(self) -> list[dict]:
+        cols = ["script_id", "format_id", "description", "signature_json",
+                "script_path", "success_count", "fail_count"]
+        rows = self.conn.execute(f"SELECT {', '.join(cols)} FROM script_registry").fetchall()
+        out = []
+        for r in rows:
+            d = dict(zip(cols, r, strict=True))
+            d["signature"] = json.loads(d.pop("signature_json") or "{}")
+            out.append(d)
+        return out
+
+    def save_script(self, script_id: str, format_id: str, description: str,
+                    signature: dict, script_path: Path):
+        self.conn.execute(
+            "INSERT OR REPLACE INTO script_registry VALUES (?,?,?,?,?,?,?,?,?)",
+            [script_id, format_id, description, json.dumps(signature),
+             str(script_path), 1, 0, _now(), _now()])
+
+    def mark_script(self, script_id: str, success: bool):
+        col = "success_count" if success else "fail_count"
+        self.conn.execute(
+            f"UPDATE script_registry SET {col} = {col} + 1, last_used=? WHERE script_id=?",
+            [_now(), script_id])
 
     def close(self):
         self.conn.close()

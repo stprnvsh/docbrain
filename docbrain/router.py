@@ -6,7 +6,7 @@ from __future__ import annotations
 import zipfile
 from pathlib import Path
 
-SUPPORTED = {"xlsx", "pdf", "csv"}
+SUPPORTED = {"xlsx", "pdf", "csv", "txt"}
 PLANNED = {"docx", "pptx"}
 
 
@@ -41,13 +41,16 @@ def detect_type(path: Path) -> str:
         return "shapefile-part"
     if ext == "zip":
         return "archive"
-    if ext in {"csv", "tsv", "txt"}:
+    if ext in {"csv", "tsv"}:
         return "csv"
-    # Fall back: does it look like delimited text?
+    if ext in {"txt", "log", "text", "dat"}:
+        return "txt"
+    # Extension unknown: decodable text goes to the txt track (which triages
+    # further into delimited / records / prose).
     try:
         sample = path.open("rb").read(4096)
         sample.decode("utf-8", errors="strict")
-        return "csv" if ext == "" or ext in {"csv", "tsv"} else "unknown"
+        return "txt" if ext == "" else "unknown"
     except UnicodeDecodeError:
         pass
     if ext in SUPPORTED | PLANNED:
