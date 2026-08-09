@@ -335,6 +335,9 @@ def maybe_propose(store: Store, llm, *, schema_id: str, source_schema: list[dict
     targets = load_targets()
     samples = json.loads(df.head(5).to_json(orient="records", date_format="iso"))
     # Non-LLM matcher evidence (bdi-kit, optional) — top-k per target column.
+    # NO lexical pre-gating: mappings are semantic (zhl_stellen_nr→station_id,
+    # German↔English) and lexical similarity would veto exactly those. Cost is
+    # bounded — one proposal per schema fingerprint, ever.
     evidence: dict = {}
     from .matching import available as matcher_available, rank_matches
     if matcher_available():

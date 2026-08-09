@@ -82,9 +82,45 @@ def build_context(store: Store, project: str, llm: LLM | None = None) -> Path:
             "SELECT loc, text FROM chunks WHERE doc_id=?", [d["doc_id"]]).fetchall()
         chunks_by_doc[d["doc_id"]] = [{"loc": r[0], "text": r[1]} for r in rows]
 
-    doc_summaries = {d["doc_id"]: _doc_summary(llm, store, d, by_doc.get(d["doc_id"], []),
-                                               chunks_by_doc.get(d["doc_id"], []))
-                     for d in docs}
+    # Archive children (zip entries): a compact static line instead of an LLM
+    # summary — but ONLY when the child is demonstrably a family member (every
+    # table matches a schema the registry has seen 2+ times, and it carries no
+    # real text content). Novel schemas or text-bearing children (a PDF inside
+    # a zip) are NOT assumed similar and get full LLM summaries.
+    child_of: dict[str, str] = {}
+    for row in store.conn.execute(
+            "SELECT output_id, input_id FROM lineage WHERE relation='contained_in'").fetchall():
+        child_of[row[0]] = row[1]
+    name_by_id = {d["doc_id"]: d["filename"] for d in docs}
+    seen_count_of: dict[str, int] = dict(store.conn.execute(
+        "SELECT m.table_id, s.seen_count FROM table_schema_map m "
+        "JOIN schema_registry s ON s.schema_id = m.schema_id").fetchall())
+
+    def _is_family_member(doc_id: str) -> bool:
+        tabs = by_doc.get(doc_id, [])
+        if not tabs:
+            return False
+        if any(seen_count_of.get(t["table_id"], 1) < 2 for t in tabs):
+            return False  # novel schema — summarize it properly
+        real_text = [c for c in chunks_by_doc.get(doc_id, [])
+                     if not c["loc"].startswith(("non-table block", "file head"))]
+        return not real_text
+
+    doc_summaries = {}
+    for d in docs:
+        if d["doc_id"] in child_of and _is_family_member(d["doc_id"]):
+            tabs = by_doc.get(d["doc_id"], [])
+            shape = ", ".join(f"{t['n_rows']}×{t['n_cols']}" for t in tabs[:3])
+            doc_summaries[d["doc_id"]] = {
+                "summary": f"Entry from archive "
+                           f"{name_by_id.get(child_of[d['doc_id']], 'archive')} — "
+                           f"{len(tabs)} table(s) ({shape}), schema shared with "
+                           f"sibling entries.",
+                "topics": [], "entities": []}
+        else:
+            doc_summaries[d["doc_id"]] = _doc_summary(
+                llm, store, d, by_doc.get(d["doc_id"], []),
+                chunks_by_doc.get(d["doc_id"], []))
 
     review = [t for t in tables if t["needs_review"]]
 
