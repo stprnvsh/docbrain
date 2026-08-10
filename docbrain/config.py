@@ -19,6 +19,15 @@ LLM_MODEL = os.environ.get("DOCBRAIN_MODEL", "claude-opus-5")
 # Agent refinement: "auto" (only ambiguous tables), "always", "never".
 AGENT_MODE = os.environ.get("DOCBRAIN_AGENT", "auto")
 
+# Agent validation (SheetBrain-style verify-by-re-execution in the sandbox):
+# "always" (default) — every extracted table is independently verified by
+#           agent-written code in the sandbox. Accuracy over cost.
+# "auto"   — amortized: first table of each new schema family, machine-written
+#           extractions (script/agent/vision/docling), and near-threshold
+#           confidence; family members inherit trust via fingerprint.
+# "never"  — deterministic checks only.
+VALIDATE_MODE = os.environ.get("DOCBRAIN_VALIDATE", "always")
+
 SANDBOX_TIMEOUT = int(os.environ.get("DOCBRAIN_SANDBOX_TIMEOUT", "120"))
 
 # PDF page classification thresholds (pdf-inspector pattern: cheap text/image

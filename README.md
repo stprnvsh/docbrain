@@ -25,14 +25,23 @@ docbrain answers both:
 ## How it works
 
 ```
-file ──► router ──► specialist track ──► agent refinement ──► validation ──► catalog
-          what        xlsx | csv | pdf     (sandboxed, only     confidence      DuckDB +
-          is it?      txt | office | zip    when flagged)       gate ──► review  Parquet
-                                                                 queue
-                └─ every step recorded in the provenance ledger ─┘
+file ──► router ──► specialist track ──► agent refinement ──► agent validation ──► catalog
+          what        xlsx | csv | pdf     (sandboxed, only     (verify-by-re-      DuckDB +
+          is it?      txt | office | zip    when flagged)        execution) ──►      Parquet
+                                                                 confidence gate
+                                                                 ──► review queue
+                └────────── every step recorded in the provenance ledger ──────────┘
 
 project ──► schema memory ──► cross-file links ──► canonical mapping ──► context.md ──► ask
 ```
+
+**Extractions are verified, not assumed.** After every extraction, the agent
+gets the *original file* and the *extracted table* mounted together in the
+sandbox and writes independent cross-checking code — re-reads the claimed
+region, compares row counts, sample values, and column sums — emitting a
+machine-checked verdict. A failed verdict triggers one re-extraction with the
+discrepancies fed back; still failing → review queue with the evidence
+attached. Passing tables carry "agent-verified (7/7 checks)" in their notes.
 
 **Specialist tracks** (deterministic first, models only where they earn it):
 
@@ -108,6 +117,7 @@ Everything under `~/.docbrain/` (override with `DOCBRAIN_HOME`): `catalog.duckdb
 | `DOCBRAIN_LLM` | `auto` | `anthropic` \| `claude-cli` \| `none` |
 | `DOCBRAIN_MODEL` | backend default | any Claude model id |
 | `DOCBRAIN_AGENT` | `auto` | `auto` (only flagged tables) \| `always` \| `never` |
+| `DOCBRAIN_VALIDATE` | `always` | `always` (verify every table) \| `auto` (per schema family) \| `never` |
 | `DOCBRAIN_PDF_ENGINE` | `pymupdf` | `pymupdf` \| `docling` \| `auto` (escalate on triggers) |
 | `DOCBRAIN_PDF_CLASSIFIER` | `heuristic` | `heuristic` \| `inspector` (pdf-inspector) |
 | `DOCBRAIN_REVIEW_THRESHOLD` | `0.80` | confidence below this → review queue |

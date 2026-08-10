@@ -278,6 +278,83 @@ def explore_file(llm: LLM, sandbox: Sandbox, file_path: Path,
     return outcome
 
 
+@dataclass
+class ValidationOutcome:
+    verdict: str            # pass | fail | skip | error
+    checks: list[dict] = field(default_factory=list)
+    discrepancies: list[str] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)
+
+
+def validate_extraction(llm: LLM, sandbox: Sandbox, file_path: Path,
+                        candidate: TableCandidate, parquet_path: Path,
+                        max_iters: int = 2) -> ValidationOutcome:
+    """Verify-by-re-execution: the agent gets the ORIGINAL file and the
+    extracted parquet mounted together and writes independent cross-checking
+    code. The harness reads OUT/verdict.json — the agent never grades itself
+    by assertion, only by executed checks."""
+    outcome = ValidationOutcome(verdict="error")
+    attempts: list[dict] = []
+    old_phase = sandbox.context.get("phase")
+    sandbox.context["phase"] = "validate"
+    try:
+        for it in range(1, max_iters + 1):
+            state = {
+                "filename": file_path.name,
+                "source_ref": candidate.source_ref,
+                "method": candidate.method,
+                "extracted_shape": list(candidate.df.shape),
+                "extracted_columns": [{"name": str(c), "dtype": str(candidate.df[c].dtype)}
+                                      for c in candidate.df.columns],
+                "extraction_notes": candidate.notes[:4],
+                "sketch": {k: v for k, v in candidate.sketch.items()
+                           if k in ("sheet", "range", "header_rows", "page",
+                                    "delimiter", "encoding", "engine")},
+                "previous_attempts": attempts,
+            }
+            try:
+                action = llm.complete_json(json.dumps(state, default=str, indent=1),
+                                           system=prompts.VALIDATE_SYSTEM,
+                                           max_tokens=6000)
+            except (LLMError, ValueError) as e:
+                outcome.log.append(f"iter{it}: llm error: {e}")
+                return outcome
+            kind = (action or {}).get("action")
+            if kind == "skip":
+                outcome.verdict = "skip"
+                outcome.log.append(f"iter{it}: skip ({action.get('reason', '')})")
+                return outcome
+            if kind != "code":
+                attempts.append({"error": f"unrecognized action {kind!r}"})
+                continue
+            res = sandbox.run_python(action.get("code", ""),
+                                     {file_path.name: file_path,
+                                      "extracted.parquet": parquet_path})
+            verdict_file = (res.workdir / "out" / "verdict.json") if res.workdir else None
+            if res.ok and verdict_file and verdict_file.exists():
+                try:
+                    v = json.loads(verdict_file.read_text())
+                except json.JSONDecodeError:
+                    v = None
+                if isinstance(v, dict) and v.get("verdict") in ("pass", "fail"):
+                    outcome.verdict = v["verdict"]
+                    outcome.checks = [c for c in v.get("checks", []) if isinstance(c, dict)]
+                    outcome.discrepancies = [str(d) for d in v.get("discrepancies", [])][:8]
+                    n_ok = sum(1 for c in outcome.checks if c.get("ok"))
+                    outcome.log.append(
+                        f"iter{it}: verdict={outcome.verdict} "
+                        f"({n_ok}/{len(outcome.checks)} checks ok)")
+                    return outcome
+            attempts.append({"code": action.get("code", "")[:2000], "ok": res.ok,
+                             "stdout": res.stdout[-1200:], "stderr": res.stderr[-1200:],
+                             "verdict_json": "missing or malformed"})
+            outcome.log.append(f"iter{it}: verification run ok={res.ok}, no usable verdict")
+        outcome.log.append("max iterations reached without a verdict")
+        return outcome
+    finally:
+        sandbox.context["phase"] = old_phase
+
+
 def vision_extract_page(llm: LLM, png_path: Path, page_no: int,
                         doc_stem: str) -> tuple[list[TableCandidate], str]:
     """Scanned-page path: image -> structured tables + text."""

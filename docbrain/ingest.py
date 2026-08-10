@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .agents.loop import refine_table, vision_extract_page
-from .config import AGENT_MODE, PATHS
+from .config import AGENT_MODE, PATHS, REVIEW_THRESHOLD
 from .extractors import csv_extract, pdf_extract, txt_extract, xlsx_extract
 from .ir import TableCandidate
 from .llm import LLM, LLMError
@@ -48,6 +48,28 @@ def _should_refine(candidate: TableCandidate, llm: LLM | None) -> bool:
     if AGENT_MODE == "always":
         return True
     return bool(AGENT_TRIGGER_FLAGS & set(candidate.flags))
+
+
+def _should_agent_validate(candidate: TableCandidate, conf: float,
+                           llm: LLM | None, store: Store) -> bool:
+    """Verify-by-re-execution policy. Default `always`: every extracted table
+    is independently checked in the sandbox (accuracy over cost). `auto`
+    amortizes per schema family (first sighting, machine-written extractions,
+    near-threshold confidence); `never` = deterministic checks only."""
+    from .config import REVIEW_THRESHOLD, VALIDATE_MODE
+    if VALIDATE_MODE == "never" or llm is None or not llm.available:
+        return False
+    if candidate.df.empty:
+        return False
+    if VALIDATE_MODE == "always":
+        return True
+    if candidate.method in ("script", "agent", "vision", "pdf-docling"):
+        return True
+    if abs(conf - REVIEW_THRESHOLD) <= 0.08:
+        return True
+    from .schema_memory import fingerprint
+    fp, _ = fingerprint(candidate.df)
+    return store.lookup_schema(fp) is None  # first sighting of this family
 
 
 def _curated_or_explore(store: Store, llm: LLM, sandbox: Sandbox, path: Path,
@@ -324,6 +346,38 @@ def ingest_file(store: Store, project: str, path: Path, llm: LLM | None = None,
             fallback = cand.df.astype(str)
             fallback.to_parquet(pq)
             issues.append("stored with string-coerced dtypes (mixed types)")
+
+        # Agent validation: verify-by-re-execution against the ORIGINAL file.
+        # Fail -> one re-extraction round with the discrepancies fed back ->
+        # re-validate; still failing -> review queue with the evidence.
+        if _should_agent_validate(cand, conf, llm, store):
+            from .agents.loop import validate_extraction
+            v = validate_extraction(llm, sandbox, path, cand, pq)
+            report.notes.extend(f"[validate:{cand.name}] {l}" for l in v.log)
+            if v.verdict == "fail" and AGENT_MODE != "never":
+                cand.notes.append("validator found: " + "; ".join(v.discrepancies[:5]))
+                r = refine_table(llm, sandbox, path, cand)
+                report.notes.extend(f"[re-extract:{cand.name}] {l}" for l in r.log)
+                if (len(r.tables) == 1 and not r.tables[0].df.empty
+                        and not r.accepted_original):
+                    cand = r.tables[0]
+                    conf, issues, needs_review = score(cand)
+                    table_id = short_id(doc_id, cand.name, cand.source_ref)
+                    pq = tables_dir / f"{cand.name}__{table_id}.parquet"
+                    cand.df.to_parquet(pq)
+                    v = validate_extraction(llm, sandbox, path, cand, pq)
+                    report.notes.extend(f"[re-validate:{cand.name}] {l}" for l in v.log)
+            if v.verdict == "pass":
+                n_ok = sum(1 for c in v.checks if c.get("ok"))
+                conf = min(0.97, conf + 0.07)
+                needs_review = conf < REVIEW_THRESHOLD
+                report.notes.append(f"{cand.name}: agent-verified against source "
+                                    f"({n_ok}/{len(v.checks)} checks)")
+            elif v.verdict == "fail":
+                conf = min(conf, REVIEW_THRESHOLD - 0.05)
+                needs_review = True
+                issues.extend("validator: " + d for d in v.discrepancies[:3])
+
         store.add_table(table_id=table_id, doc_id=doc_id, project=project,
                         name=cand.name, source_ref=cand.source_ref, parquet_path=pq,
                         df=cand.df, method=cand.method, confidence=conf,
