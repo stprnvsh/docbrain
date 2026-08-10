@@ -1,153 +1,125 @@
 # docbrain
 
-Local-first, sandboxed, multi-format document understanding pipeline **plus** a
-cross-document context brain: define a project, throw files at it (xlsx, csv,
-pdf — messy ones), and get back validated tables, a schema memory that
-recognizes recurring file shapes, cross-file links, and a single per-project
-context pack you can query in natural language.
+**Turn a folder of messy customer files into clean, queryable, provenance-tracked data — and a knowledge base you can ask questions.**
+
+You point it at a directory (Excel workbooks with merged headers, CSVs in weird encodings, PDFs, proprietary machine logs, zips full of exports). It figures out what each file is, extracts every table into typed Parquet, remembers the formats it has seen so the next delivery is cheaper, normalizes data into *your* canonical schemas, records cryptographic proof of everything it did — and builds a per-project context pack you can query in natural language.
+
+Everything runs locally. Your files never leave your machine except for the LLM calls you configure.
 
 ```
-file in → router (format + quality classify)
-        → specialist track (xlsx islands | csv dialect/encoding |
-                            pdf page-class | txt triage)
-        → structural sketch
-        → sandboxed agentic refinement (code exec + vision fallback, only when flagged)
-        → validator → confidence score → parquet + catalog
-                        ↳ below threshold → human review queue
-project → schema memory + cross-file linker → context.md / context.json → ask
+docbrain ingest myproject ./customer-delivery/
+docbrain ask myproject "which counting stations appear in both the 2022 and 2023 campaigns?"
 ```
 
-The **txt track** triages every text file three ways: `delimited` (a real
-delimiter + consistent row widths → CSV machinery), `records` (structured but
-proprietary — controller logs, exports), `prose` (→ chunks for the context
-layer). Proven on VR-Netlog traffic-signal logs: 6,355 per-second records
-parsed into a typed table by an agent-written parser, first iteration.
+---
 
-**Nothing format-specific is hardcoded for `records` files.** The agent authors
-reusable parser *scripts*; a **curated script registry** (`~/.docbrain/scripts`
-+ catalog table, inspect with `docbrain scripts`) keeps them keyed by a format
-signature. Similar file arrives → remembered scripts run first (zero LLM
-calls); only on validation failure does the agent write/adapt one (seeded with
-the best near-miss script). Every script — remembered or fresh — must satisfy
-one **standardized output contract**: `OUT/manifest.json` (format_id, tables,
-columns, descriptions) + typed parquet, validated by the harness before
-anything enters the catalog. Freedom in *how*, fixed contract for *what*.
+## The problem
+
+Enterprises receive hundreds of heterogeneous files per project — every vendor exports differently, every year the format drifts, half the payload hides inside zips and PDFs. Getting that into internal formats is manual, repetitive work. And when an AI agent does it for you, you get a new problem: *"it says it used all the files — how would I know?"*
+
+docbrain answers both:
+
+1. **Extraction that learns.** Agents don't just parse — they *author reusable parser scripts*, remember schemas, and remember approved mappings. The second file of a format family costs zero LLM calls.
+2. **Proof, not trust.** Every action is recorded by the harness (not self-reported by the agent) in a tamper-evident ledger: which file bytes went in, which exact code ran, which bytes came out.
+
+## How it works
+
+```
+file ──► router ──► specialist track ──► agent refinement ──► validation ──► catalog
+          what        xlsx | csv | pdf     (sandboxed, only     confidence      DuckDB +
+          is it?      txt | office | zip    when flagged)       gate ──► review  Parquet
+                                                                 queue
+                └─ every step recorded in the provenance ledger ─┘
+
+project ──► schema memory ──► cross-file links ──► canonical mapping ──► context.md ──► ask
+```
+
+**Specialist tracks** (deterministic first, models only where they earn it):
+
+| Format | How it's handled |
+|---|---|
+| **xlsx** | Multi-table "island" detection per sheet, merged multi-row headers combined |
+| **csv** | Encoding sniff (cp1252-aware), dialect detection, ragged-row repair, stacked-table splitting |
+| **pdf** | Per-page classify (text/scanned/vector) → native extraction for text, vision for scans/drawings; optional [Docling](https://github.com/docling-project/docling) escalation for hard layouts |
+| **txt** | Triage: delimited → csv machinery; **proprietary records → an agent writes a parser**; prose → searchable chunks |
+| **docx/pptx/odt/…** | [firecrawl-anydoc](https://github.com/firecrawl/anydoc): deterministic, no ML, milliseconds |
+| **zip** | A container, not a format: entries extracted and routed recursively, provenance keeps `archive::entry` paths |
+| **unknown** | Sandbox exploration: the agent probes the file with code and either produces tables or explains what it is |
+
+**The three memory systems** — what makes run *N+1* cheaper and better than run *N*:
+
+- **Script registry** — when the agent writes a parser for an unknown format (say, a VR-Netlog signal-controller log), the script is saved, keyed by a format signature. The next similar file replays it with **zero LLM calls**. Win/fail counts tracked; failures trigger adaptation, not re-derivation.
+- **Schema memory** — every table's schema is fingerprinted. Recurring schemas are recognized instantly, and learned per-column contracts (types, ranges, null rates) raise **drift flags** when a vendor's numbers move outside remembered bounds.
+- **Mapping memory** — declare canonical target schemas (plain YAML or [ODCS v3.1](https://bitol-io.github.io/open-data-contract-standard/v3.1.0/home/) data contracts). The LLM proposes column mappings, **a human approves once**, and every future file with that fingerprint lands in your canonical format automatically. Approvals can run through git PRs (`docbrain mappings --export/--sync`).
+
+**The provenance ledger** — a hash-chained, append-only log written by the harness at the chokepoints agents cannot bypass (the sandbox, ingest, mapping, SQL):
+
+- every input file by sha256, every executed script by sha256, every output by sha256
+- `docbrain verify` re-hashes everything and walks the chain — tampering breaks it loudly
+- answers from `ask` carry a ledger-verified evidence line: which tables the SQL *actually* touched
+- exports to standards: `docbrain emit openlineage` (DataHub / Marquez / Purview / Dataplex) and `docbrain attest` (DSSE-signed [in-toto/SLSA](https://slsa.dev) attestations — verify our work with standard tooling, don't trust us)
 
 ## Quick start
 
 ```bash
+git clone https://github.com/stprnvsh/docbrain && cd docbrain
 uv venv && uv pip install -e .
 
-# demo corpus (messy xlsx w/ merged headers, cp1252 csv w/ ragged rows,
-# pdf with a native page + a scanned page)
+# optional extras (each pulls heavier deps):
+#   .[docling]   hard-layout PDF tables    .[matching]  Valentine/Magneto schema matching
+#   .[attest]    signed attestations       .[contracts] ODCS contract linting
+#   .[lineage]   OpenLineage HTTP push
+
+# demo on a generated messy corpus
 .venv/bin/python scripts/make_samples.py
 docbrain ingest demo samples/
 docbrain tables demo
 docbrain context demo
 docbrain ask demo "total revenue by region across all files?"
-docbrain review demo        # what the confidence gate quarantined
 ```
 
-Data lands in `~/.docbrain/` (override with `DOCBRAIN_HOME`): one DuckDB
-catalog + per-project Parquet tables + sketches + context packs.
+**LLM backend** is auto-detected: `ANTHROPIC_API_KEY` if set, else your local `claude` CLI (Claude Code subscription auth — zero setup), else heuristics-only mode where every ambiguity routes to the review queue instead of a model.
 
-## LLM backends (auto-detected)
+## The commands
 
-| backend      | when                            | notes                              |
-|--------------|--------------------------------|------------------------------------|
-| `anthropic`  | `ANTHROPIC_API_KEY` set         | vision via Messages API            |
-| `claude-cli` | `claude` binary on PATH         | uses your Claude Code subscription auth; vision via Read tool |
-| `none`       | neither                         | heuristics only; ambiguity → review queue |
-
-Override with `DOCBRAIN_LLM=anthropic|claude-cli|none`, model with
-`DOCBRAIN_MODEL`. Agent refinement: `DOCBRAIN_AGENT=auto|always|never`
-(`auto` = only tables flagged ambiguous by the heuristics).
-
-## What implements what (mapping to the research)
-
-| pipeline piece | pattern source | file |
-|---|---|---|
-| per-page PDF classify before OCR/vision | Firecrawl pdf-inspector | `detectors/pdf_pages.py` |
-| xlsx multi-table island detection + merged headers | eparse / TableSense problem class | `detectors/xlsx_tables.py` |
-| csv encoding + dialect sniff + block split | CleverCSV + brief §4 | `detectors/csv_dialect.py` |
-| ragged-row repair to modal width | Tasheeh (light version) | `extractors/csv_extract.py` |
-| txt triage + agent-written parsers for unknown record formats | SheetAgent execution loop, generalized | `extractors/txt_extract.py`, `agents/loop.py` |
-| understand → execute (sandboxed code) → validate loop | SheetBrain / SheetAgent | `agents/loop.py`, `sandbox.py`, `validate.py` |
-| render-region vision fallback, one primitive two callers | SpreadsheetAgent / agentic-PDF | `agents/render.py`, `agents/loop.py` |
-| confidence gate + review queue | agentic-extraction literature (~95% field conf) | `validate.py`, `cli.py review` |
-| schema fingerprint registry + contracts + drift | brief §"schema memory" | `schema_memory.py`, `store.py` |
-| cross-file SAME_AS / JOINABLE links (heuristic + LLM confirm) | Valentine-style schema matching, v0 | `linker.py` |
-| per-project context pack + evidence-loop Q&A | the actual product | `context.py` |
-
-## Sandbox
-
-Agent-written code runs via `sandbox.py`:
-- macOS: `sandbox-exec` — network **denied** (verified at startup), writes
-  confined to the job dir, inputs mounted read-only, CPU/file-size rlimits.
-- elsewhere/fallback: subprocess with rlimits + minimal env (no network denial
-  — the run records which mode executed).
-
-Treat documents as adversarial: the model only ever sees file *content* via
-its own sandboxed code or rendered images; extracted text is never executed.
-
-## Cloud swap points (deliberate seams)
-
-| local v0 | AWS/GCP later |
+| Command | What it does |
 |---|---|
-| `~/.docbrain` Parquet + DuckDB catalog | S3/GCS Parquet + Iceberg/Glue/BigLake |
-| `sandbox.py` subprocess/sandbox-exec | Firecracker/Docker executor, same `run_python` contract |
-| `llm.py` claude-cli/anthropic | Bedrock / Vertex / first-party API behind the same class |
-| CLI `ingest` loop | SQS fan-out + Step Functions/Temporal, same `ingest_file()` |
-| token-overlap chunk search | embeddings/FTS/LightRAG |
+| `docbrain ingest <project> <paths…>` | The pipeline. `--force` re-does, `--no-llm` heuristics only |
+| `docbrain status / tables <project>` | What's in the catalog |
+| `docbrain context <project>` | Build the context pack (`context.md` + `.json`) |
+| `docbrain ask <project> "…"` | Natural-language Q&A with SQL evidence loop + verified citations |
+| `docbrain review <project>` | The human-review queue (everything below the confidence gate) |
+| `docbrain provenance <project> [name]` | Full lineage of any table or file: source hash → code hash → output hash |
+| `docbrain verify [project]` | Re-hash everything, verify the ledger chain |
+| `docbrain scripts` | The curated parser registry (wins/fails per format) |
+| `docbrain targets / mappings / approve / canonical` | Canonical-schema workflow |
+| `docbrain emit openlineage / attest` | Standards-based exports of the ledger |
+| `docbrain eval [--freeze]` | Golden-corpus regression gate |
 
-## Standards & interop (adoption plan Waves 0–2, implemented)
+## Where the data lives
 
-- **Target schemas, two formats**: native minimal YAML *and* ODCS v3.1
-  DataContracts in `~/.docbrain/targets/` (`docbrain targets`,
-  `--export-odcs`, `--lint` via `[contracts]` extra). Units via
-  `customProperties` UCUM codes.
-- **Declared-contract enforcement**: Pandera schemas generated from targets,
-  enforced at the canonical hop; failing rows quarantined with
-  `_docbrain_meta` (Airbyte raw→typed pattern). Drift policy per target:
-  `on_drift: evolve | freeze`.
-- **Mapping memory with versions** (dbt model-versions semantics): approve
-  supersedes, never deletes; PR-review approval flow via
-  `docbrain mappings --export/--sync`.
-- **Ledger projections** (the JSONL chain stays the system of record):
-  `docbrain emit openlineage` → RunEvents (Marquez/DataHub/OpenMetadata/
-  Purview/Dataplex-ingestible); `docbrain attest` → DSSE-signed in-toto
-  Statements w/ SLSA Provenance v1 predicate (`docbrain keys-init` once,
-  `docbrain attest --verify` re-checks signatures + re-hashes artifacts).
-- **Golden eval gate**: `docbrain eval [--freeze]` — deterministic corpus
-  re-ingest diffed against `tests/golden/`; catalog snapshots via
-  `--snapshot-project`. Gate for Wave 3 (bdi-kit matching, Docling front-end).
+Everything under `~/.docbrain/` (override with `DOCBRAIN_HOME`): `catalog.duckdb` (all metadata — plain DuckDB, query it with anything), `projects/<name>/tables/*.parquet` (extracted tables), `projects/<name>/canonical/` (target-schema outputs), `projects/<name>/context.md` (the knowledge pack), `ledger.jsonl` (the provenance chain), `scripts/` (curated parsers), `targets/` (your schema contracts), `exports/` (OpenLineage + attestations).
 
-See [docs/landscape.md](docs/landscape.md) and
-[docs/adoption-plan.md](docs/adoption-plan.md) for the reasoning.
+## Configuration
 
-## Wave 3 (implemented, all optional extras)
+| Env var | Default | Options |
+|---|---|---|
+| `DOCBRAIN_HOME` | `~/.docbrain` | data directory |
+| `DOCBRAIN_LLM` | `auto` | `anthropic` \| `claude-cli` \| `none` |
+| `DOCBRAIN_MODEL` | backend default | any Claude model id |
+| `DOCBRAIN_AGENT` | `auto` | `auto` (only flagged tables) \| `always` \| `never` |
+| `DOCBRAIN_PDF_ENGINE` | `pymupdf` | `pymupdf` \| `docling` \| `auto` (escalate on triggers) |
+| `DOCBRAIN_PDF_CLASSIFIER` | `heuristic` | `heuristic` \| `inspector` (pdf-inspector) |
+| `DOCBRAIN_REVIEW_THRESHOLD` | `0.80` | confidence below this → review queue |
 
-- **Office track (firecrawl-anydoc)**: doc/docx/odt/rtf/epub/ppt/pptx/ods/odp →
-  typed tables + text chunks, deterministic, no ML, milliseconds.
-- **pdf-inspector classifier**: `DOCBRAIN_PDF_CLASSIFIER=inspector` swaps in
-  Firecrawl's battle-tested page classifier (default stays the built-in
-  heuristic; both agree on the test corpus).
-- **Docling engine** (`[docling]` extra): `DOCBRAIN_PDF_ENGINE=docling|auto` —
-  TableFormer for the hard-layout tail (+46% tables on a dense KPI annex vs
-  native find_tables); `auto` escalates only on scanned/vector pages or
-  zero-native-table docs.
-- **bdi-kit matching** (`[matching]` extra): Valentine/Magneto top-k column
-  candidates computed before the LLM in propose-mappings and passed as
-  evidence.
-- Everything gated by `docbrain eval` — the golden fixture passes with all of
-  the above installed at default settings.
+## Security posture
 
-## Known gaps (deliberate)
+Agent-written code only ever runs in a sandbox (macOS `sandbox-exec`: network **denied**, writes confined to the job dir, inputs mounted read-only, CPU/file-size limits — both properties are probed at startup, not assumed). Documents are treated as adversarial: extracted text is never executed, and the sandbox has no credentials, no catalog access, no host paths. Every execution is ledger-recorded whether it succeeds or not.
 
-- legacy .xls, shapefiles, Visum .mtx, zip archives: routed +
-  recorded as unsupported, not parsed.
-- Linker is pairwise heuristic + one LLM confirm pass — no entity resolution yet.
-- Chunk search is token overlap, not embeddings.
-- Sandbox is process-level isolation, not a microVM.
-- No cross-project context yet (the catalog schema already carries `project`,
-  so it's an additive step).
+## How this compares to other tools
+
+Short version: the big open-source parsers (Docling, MinerU, Unstructured, RAGFlow…) turn documents into markdown for RAG — docbrain *consumes* the best of them as front-ends and owns the layer none of them ship: **typed tables + curated script reuse + schema/mapping memory + a tamper-evident ledger**. Full research with sources: [docs/landscape.md](docs/landscape.md). Standards-adoption plan and status: [docs/adoption-plan.md](docs/adoption-plan.md).
+
+## Deliberate gaps / roadmap
+
+Legacy `.xls`, shapefiles, and PTV Visum `.mtx` matrices are catalogued but not parsed yet. Sub-file read granularity (byte-range provenance via a FUSE/range-server chokepoint), embeddings-based search, Docker/Firecracker sandbox backends, a service/API deployment, and cross-project context are the next chapters — the seams for all of them are already in place.
